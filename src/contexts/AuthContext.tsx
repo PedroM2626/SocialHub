@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User as AppUser } from '@/lib/types'
 import { getUserById, getUsers, getUserByEmail, createUser, updateUser } from '@/lib/db'
@@ -24,7 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
-  updateUser: (updatedData: Partial<AppUser>) => void
+  updateUser: (updatedData: Partial<AppUser>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,51 +29,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  // Enable automatic login in development when VITE_AUTO_LOGIN is set to "true"
   const AUTO_LOGIN = import.meta.env.VITE_AUTO_LOGIN === 'true'
 
   useEffect(() => {
-    try {
-      const sessionStr = localStorage.getItem('socialhub_session')
+    let mounted = true
+    ;(async () => {
+      try {
+        const sessionStr = localStorage.getItem('socialhub_session')
 
-      if (sessionStr) {
-        const savedSession: MockSession = JSON.parse(sessionStr)
-        if (savedSession.expires_at > Date.now()) {
-          const loggedInUser = mockUsers.find(
-            (u) => u.id === savedSession.user.id,
-          )
-          if (loggedInUser) {
-            setUser(loggedInUser)
-            setSession(savedSession)
+        if (sessionStr) {
+          const savedSession: MockSession = JSON.parse(sessionStr)
+          if (savedSession.expires_at > Date.now()) {
+            const dbUser = await getUserById(savedSession.user.id)
+            if (dbUser && mounted) {
+              setUser(dbUser)
+              setSession(savedSession)
+            } else if (mounted) {
+              localStorage.removeItem('socialhub_session')
+            }
+          } else if (mounted) {
+            localStorage.removeItem('socialhub_session')
           }
-        } else {
-          localStorage.removeItem('socialhub_session')
+        } else if (AUTO_LOGIN) {
+          const allUsers = await getUsers()
+          if (allUsers.length > 0 && mounted) {
+            const defaultUser = allUsers[0]
+            const newSession: MockSession = {
+              user: { id: defaultUser.id, email: defaultUser.email },
+              expires_at: Date.now() + 1000 * 60 * 60 * 24,
+            }
+            localStorage.setItem('socialhub_session', JSON.stringify(newSession))
+            setUser(defaultUser)
+            setSession(newSession)
+          }
         }
-      } else if (AUTO_LOGIN && mockUsers.length > 0) {
-        // Create a session automatically for the first mock user (development convenience)
-        const defaultUser = mockUsers[0]
-        const newSession: MockSession = {
-          user: { id: defaultUser.id, email: defaultUser.email },
-          expires_at: Date.now() + 1000 * 60 * 60 * 24, // 24 hours
-        }
-        localStorage.setItem('socialhub_session', JSON.stringify(newSession))
-        setUser(defaultUser)
-        setSession(newSession)
+      } catch (error) {
+        console.error('Failed to initialize auth state:', error)
+        localStorage.removeItem('socialhub_session')
+      } finally {
+        if (mounted) setLoading(false)
       }
-    } catch (error) {
-      console.error('Failed to initialize auth state:', error)
-      localStorage.removeItem('socialhub_session')
-    }
+    })()
 
-    setLoading(false)
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const login = async (email: string, password: string) => {
-    const foundUser = mockUsers.find((u) => u.email === email)
+    // Password is not validated in this mock flow; rely on DB presence
+    const foundUser = await getUserByEmail(email)
     if (foundUser) {
       const newSession: MockSession = {
         user: { id: foundUser.id, email: foundUser.email },
-        expires_at: Date.now() + 3600 * 1000, // 1 hour
+        expires_at: Date.now() + 3600 * 1000,
       }
       localStorage.setItem('socialhub_session', JSON.stringify(newSession))
       setUser(foundUser)
@@ -91,22 +94,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const register = async (name: string, email: string, password: string) => {
-    if (mockUsers.some((u) => u.email === email)) {
-      throw new Error('An account with this email already exists.')
-    }
-    const newUser: AppUser = {
+    const existing = await getUserByEmail(email)
+    if (existing) throw new Error('An account with this email already exists.')
+    const newUser = await createUser({
       id: `user-${Date.now()}`,
       name,
       email,
       profile_image: `https://img.usecurling.com/ppl/medium?seed=${email}`,
-      cover_image:
-        'https://img.usecurling.com/p/1200/400?q=colorful%20abstract',
+      cover_image: 'https://img.usecurling.com/p/1200/400?q=colorful%20abstract',
       bio: 'Novo membro do SocialHub!',
       posts_count: 0,
       followers_count: 0,
       following_count: 0,
-    }
-    mockUsers.push(newUser)
+    })
+    if (!newUser) throw new Error('Failed to create user')
 
     const newSession: MockSession = {
       user: { id: newUser.id, email: newUser.email },
@@ -125,25 +126,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigate('/login')
   }
 
-  const updateUser = (updatedData: Partial<AppUser>) => {
-    if (user) {
-      const updatedUser = { ...user, ...updatedData }
-      setUser(updatedUser)
-      const userIndex = mockUsers.findIndex((u) => u.id === user.id)
-      if (userIndex !== -1) {
-        mockUsers[userIndex] = updatedUser
-      }
-    }
+  const updateUserHandler = async (updatedData: Partial<AppUser>) => {
+    if (!user) return
+    const updated = await updateUser(user.id, updatedData)
+    if (updated) setUser(updated)
   }
 
-  const value = {
+  const value: AuthContextType = {
     isAuthenticated: !!user && !!session,
     user,
     session,
     login,
     logout,
     register,
-    updateUser,
+    updateUser: updateUserHandler,
   }
 
   return (
