@@ -130,7 +130,7 @@ export async function createPost(payload: Partial<Post>): Promise<Post | null> {
 
 export async function updateUser(id: string, payload: Partial<User>): Promise<User | null> {
   try {
-    const { data, error } = await supabase.from('users').update(payload).eq('id', id).select().single()
+    const { data, error } = await withTimeout(supabase.from('users').update(payload).eq('id', id).select().single())
     if (error) throw error
     return data as User
   } catch (err) {
