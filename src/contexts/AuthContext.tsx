@@ -79,9 +79,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     console.log('[Auth] login start', { email })
-    // Password is not validated in this mock flow; rely on DB presence
-    const foundUser = await getUserByEmail(email)
-    console.log('[Auth] login foundUser', foundUser)
+    // Try DB first
+    let foundUser = await getUserByEmail(email)
+    console.log('[Auth] login foundUser (db)', foundUser)
+
+    // Fallback to local mock data
+    if (!foundUser) {
+      const local = mockUsers.find((u) => u.email === email)
+      if (local) {
+        console.log('[Auth] login foundUser (mock)', local)
+        foundUser = local
+      }
+    }
+
     if (foundUser) {
       const newSession: MockSession = {
         user: { id: foundUser.id, email: foundUser.email },
