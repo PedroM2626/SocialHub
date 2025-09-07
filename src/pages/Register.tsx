@@ -52,10 +52,13 @@ const Register = () => {
   })
 
   const onSubmit = async (data: RegisterFormValues) => {
+    console.log('[Register] submit', data.email)
     setLoading(true)
     try {
       await register(data.name, data.email, data.password)
+      console.log('[Register] register resolved')
     } catch (error: any) {
+      console.error('[Register] register error', error)
       toast({
         variant: 'destructive',
         title: 'Erro no Cadastro',
