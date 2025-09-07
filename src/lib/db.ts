@@ -57,10 +57,9 @@ export async function createUser(payload: Partial<User>): Promise<User | null> {
 
 export async function getPosts(): Promise<Post[]> {
   try {
-    const { data: posts, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('created_date', { ascending: false })
+    const { data: posts, error } = await withTimeout(
+      supabase.from('posts').select('*').order('created_date', { ascending: false }),
+    )
     if (error) throw error
     const postsArr = (posts || []) as any[]
 
