@@ -67,7 +67,7 @@ export async function getPosts(): Promise<Post[]> {
     const userIds = Array.from(new Set(postsArr.map((p) => p.author_id).filter(Boolean)))
     let usersMap: Record<string, User> = {}
     if (userIds.length > 0) {
-      const { data: users } = await supabase.from('users').select('*').in('id', userIds)
+      const { data: users } = await withTimeout(supabase.from('users').select('*').in('id', userIds))
       usersMap = (users || []).reduce((acc: any, u: any) => {
         acc[u.id] = u
         return acc
