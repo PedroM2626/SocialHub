@@ -1,6 +1,16 @@
 import { supabase } from './supabase'
 import { Post, User, Community, Tag, Task } from './types'
 
+// Helper to avoid hanging requests: race the supabase promise with a timeout
+async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
+  return await Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Supabase request timed out')), ms),
+    ),
+  ])
+}
+
 export async function getUsers(): Promise<User[]> {
   try {
     const { data, error } = await supabase.from('users').select('*')
