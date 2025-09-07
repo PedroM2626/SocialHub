@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User as AppUser } from '@/lib/types'
 import { users as mockUsers } from '@/lib/mock-data'
@@ -35,15 +29,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
+  // Enable automatic login in development when VITE_AUTO_LOGIN is set to "true"
+  const AUTO_LOGIN = import.meta.env.VITE_AUTO_LOGIN === 'true'
+
   useEffect(() => {
     try {
       const sessionStr = localStorage.getItem('socialhub_session')
+
       if (sessionStr) {
         const savedSession: MockSession = JSON.parse(sessionStr)
         if (savedSession.expires_at > Date.now()) {
-          const loggedInUser = mockUsers.find(
-            (u) => u.id === savedSession.user.id,
-          )
+          const loggedInUser = mockUsers.find((u) => u.id === savedSession.user.id)
           if (loggedInUser) {
             setUser(loggedInUser)
             setSession(savedSession)
@@ -51,11 +47,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           localStorage.removeItem('socialhub_session')
         }
+      } else if (AUTO_LOGIN && mockUsers.length > 0) {
+        // Create a session automatically for the first mock user (development convenience)
+        const defaultUser = mockUsers[0]
+        const newSession: MockSession = {
+          user: { id: defaultUser.id, email: defaultUser.email },
+          expires_at: Date.now() + 1000 * 60 * 60 * 24, // 24 hours
+        }
+        localStorage.setItem('socialhub_session', JSON.stringify(newSession))
+        setUser(defaultUser)
+        setSession(newSession)
       }
     } catch (error) {
       console.error('Failed to initialize auth state:', error)
       localStorage.removeItem('socialhub_session')
     }
+
     setLoading(false)
   }, [])
 
@@ -84,8 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       name,
       email,
       profile_image: `https://img.usecurling.com/ppl/medium?seed=${email}`,
-      cover_image:
-        'https://img.usecurling.com/p/1200/400?q=colorful%20abstract',
+      cover_image: 'https://img.usecurling.com/p/1200/400?q=colorful%20abstract',
       bio: 'Novo membro do SocialHub!',
       posts_count: 0,
       followers_count: 0,
