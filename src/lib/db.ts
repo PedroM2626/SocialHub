@@ -35,7 +35,7 @@ export async function getUserById(id: string): Promise<User | null> {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
-    const { data, error } = await supabase.from('users').select('*').eq('email', email).limit(1).single()
+    const { data, error } = await withTimeout(supabase.from('users').select('*').eq('email', email).limit(1).single())
     if (error) throw error
     return data as User
   } catch (err) {
