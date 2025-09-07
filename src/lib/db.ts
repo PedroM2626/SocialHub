@@ -24,7 +24,7 @@ export async function getUsers(): Promise<User[]> {
 
 export async function getUserById(id: string): Promise<User | null> {
   try {
-    const { data, error } = await supabase.from('users').select('*').eq('id', id).limit(1).single()
+    const { data, error } = await withTimeout(supabase.from('users').select('*').eq('id', id).limit(1).single())
     if (error) throw error
     return data as User
   } catch (err) {
