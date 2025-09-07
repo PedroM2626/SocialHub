@@ -40,9 +40,20 @@ const Login = () => {
     defaultValues: { email: '', password: '' },
   })
 
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
+
   const onSubmit = async (data: LoginFormValues) => {
     console.log('[Login] submit', data.email)
+    if (!mountedRef.current) return
     setLoading(true)
+    let timeout = setTimeout(() => {
+      if (mountedRef.current) {
+        console.error('[Login] timeout clearing loading')
+        setLoading(false)
+      }
+    }, 15000)
+
     try {
       await login(data.email, data.password)
       console.log('[Login] login resolved')
@@ -54,7 +65,8 @@ const Login = () => {
         description: 'E-mail ou senha inválidos. Por favor, tente novamente.',
       })
     } finally {
-      setLoading(false)
+      clearTimeout(timeout)
+      if (mountedRef.current) setLoading(false)
     }
   }
 
