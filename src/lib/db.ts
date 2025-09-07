@@ -118,3 +118,14 @@ export async function createPost(payload: Partial<Post>): Promise<Post | null> {
     return null
   }
 }
+
+export async function updateUser(id: string, payload: Partial<User>): Promise<User | null> {
+  try {
+    const { data, error } = await supabase.from('users').update(payload).eq('id', id).select().single()
+    if (error) throw error
+    return data as User
+  } catch (err) {
+    console.warn('updateUser failed', err)
+    return null
+  }
+}
