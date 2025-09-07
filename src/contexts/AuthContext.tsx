@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User as AppUser } from '@/lib/types'
-import { users as mockUsers } from '@/lib/mock-data'
+import { getUserById, getUsers, getUserByEmail, createUser, updateUser } from '@/lib/db'
 
 interface MockSession {
   user: {
