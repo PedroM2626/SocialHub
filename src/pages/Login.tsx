@@ -41,10 +41,13 @@ const Login = () => {
   })
 
   const onSubmit = async (data: LoginFormValues) => {
+    console.log('[Login] submit', data.email)
     setLoading(true)
     try {
       await login(data.email, data.password)
+      console.log('[Login] login resolved')
     } catch (error) {
+      console.error('[Login] login error', error)
       toast({
         variant: 'destructive',
         title: 'Erro de Login',
