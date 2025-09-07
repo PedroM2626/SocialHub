@@ -77,8 +77,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const login = async (email: string, password: string) => {
+    console.log('[Auth] login start', { email })
     // Password is not validated in this mock flow; rely on DB presence
     const foundUser = await getUserByEmail(email)
+    console.log('[Auth] login foundUser', foundUser)
     if (foundUser) {
       const newSession: MockSession = {
         user: { id: foundUser.id, email: foundUser.email },
@@ -87,8 +89,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('socialhub_session', JSON.stringify(newSession))
       setUser(foundUser)
       setSession(newSession)
+      console.log('[Auth] login success, navigating')
       navigate('/')
     } else {
+      console.log('[Auth] login failed: no user')
       throw new Error('Invalid email or password')
     }
   }
