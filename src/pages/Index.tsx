@@ -13,8 +13,8 @@ import {
 import { PostFilters, PostFilterValues } from '@/components/social/PostFilters'
 import { useAuth } from '@/contexts/AuthContext'
 import { Skeleton } from '@/components/ui/skeleton'
-import { posts as mockPosts } from '@/lib/mock-data'
 import { useToast } from '@/components/ui/use-toast'
+import { getPosts, createPost as createPostDb } from '@/lib/db'
 
 const Index = () => {
   const [posts, setPosts] = useState<Post[]>([])
