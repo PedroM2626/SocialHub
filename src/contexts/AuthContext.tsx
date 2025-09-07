@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User as AppUser } from '@/lib/types'
 import { users as mockUsers } from '@/lib/mock-data'
@@ -39,7 +45,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (sessionStr) {
         const savedSession: MockSession = JSON.parse(sessionStr)
         if (savedSession.expires_at > Date.now()) {
-          const loggedInUser = mockUsers.find((u) => u.id === savedSession.user.id)
+          const loggedInUser = mockUsers.find(
+            (u) => u.id === savedSession.user.id,
+          )
           if (loggedInUser) {
             setUser(loggedInUser)
             setSession(savedSession)
@@ -91,7 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       name,
       email,
       profile_image: `https://img.usecurling.com/ppl/medium?seed=${email}`,
-      cover_image: 'https://img.usecurling.com/p/1200/400?q=colorful%20abstract',
+      cover_image:
+        'https://img.usecurling.com/p/1200/400?q=colorful%20abstract',
       bio: 'Novo membro do SocialHub!',
       posts_count: 0,
       followers_count: 0,

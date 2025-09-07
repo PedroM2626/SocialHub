@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Use Vite-exposed env vars (VITE_ prefix) for client-side usage
-const supabaseUrl = typeof import.meta !== 'undefined' ? import.meta.env.VITE_SUPABASE_URL : process.env.VITE_SUPABASE_URL
-const supabaseKey = typeof import.meta !== 'undefined' ? import.meta.env.VITE_SUPABASE_KEY : process.env.VITE_SUPABASE_KEY
+const supabaseUrl =
+  typeof import.meta !== 'undefined'
+    ? import.meta.env.VITE_SUPABASE_URL
+    : process.env.VITE_SUPABASE_URL
+const supabaseKey =
+  typeof import.meta !== 'undefined'
+    ? import.meta.env.VITE_SUPABASE_KEY
+    : process.env.VITE_SUPABASE_KEY
 
 if (!supabaseUrl || !supabaseKey) {
   // Fallback mock (keeps previous behavior when env vars are not set)
@@ -25,5 +31,8 @@ if (!supabaseUrl || !supabaseKey) {
 } else {
   // Create and export the real Supabase client
   // Note: the anon/public key is expected here (safe to expose if RLS is configured)
-  export const supabase = createClient(supabaseUrl as string, supabaseKey as string)
+  export const supabase = createClient(
+    supabaseUrl as string,
+    supabaseKey as string,
+  )
 }
