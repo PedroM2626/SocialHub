@@ -106,7 +106,7 @@ export async function createPost(payload: Partial<Post>): Promise<Post | null> {
       reactions: payload.reactions || {},
       comments: payload.comments || [],
     }
-    const { data, error } = await supabase.from('posts').insert(record).select().single()
+    const { data, error } = await withTimeout(supabase.from('posts').insert(record).select().single())
     if (error) throw error
     // attach author
     const author = await getUserById(record.author_id)
