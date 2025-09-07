@@ -25,11 +25,22 @@ const Index = () => {
   const { toast } = useToast()
 
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setPosts(mockPosts)
-      setLoading(false)
-    }, 1000)
+    let mounted = true
+    ;(async () => {
+      setLoading(true)
+      try {
+        const dbPosts = await getPosts()
+        if (mounted) setPosts(dbPosts)
+      } catch (err) {
+        console.error('Failed to load posts', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const handlePost = async (newPostContent: {
@@ -43,7 +54,7 @@ const Index = () => {
       .split(' ')
       .filter((h) => h.startsWith('#'))
 
-    const newPost: Post = {
+    const newPostPayload: Post = {
       id: `post-${Date.now()}`,
       author: user,
       created_date: new Date(),
@@ -56,7 +67,12 @@ const Index = () => {
       reactions: {},
     }
 
-    setPosts((currentPosts) => [newPost, ...currentPosts])
+    try {
+      const created = await createPostDb(newPostPayload)
+      if (created) setPosts((currentPosts) => [created, ...currentPosts])
+    } catch (err) {
+      console.error('Failed to create post', err)
+    }
   }
 
   const handleDeletePost = (postId: string) => {
