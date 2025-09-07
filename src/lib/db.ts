@@ -46,7 +46,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function createUser(payload: Partial<User>): Promise<User | null> {
   try {
-    const { data, error } = await supabase.from('users').insert(payload).select().single()
+    const { data, error } = await withTimeout(supabase.from('users').insert(payload).select().single())
     if (error) throw error
     return data as User
   } catch (err) {
