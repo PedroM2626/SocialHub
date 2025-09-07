@@ -23,7 +23,7 @@ async function main() {
       await client.query(`
         DO $$
         BEGIN
-          IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE polname = '${t}_allow_select_all') THEN
+          IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = '${t}_allow_select_all') THEN
             CREATE POLICY ${t}_allow_select_all ON ${t} FOR SELECT USING (true);
           END IF;
           IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE polname = '${t}_allow_insert_all') THEN
