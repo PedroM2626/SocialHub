@@ -13,7 +13,7 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
 
 export async function getUsers(): Promise<User[]> {
   try {
-    const { data, error } = await supabase.from('users').select('*')
+    const { data, error } = await withTimeout(supabase.from('users').select('*'))
     if (error) throw error
     return (data || []) as User[]
   } catch (err) {
