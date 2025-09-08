@@ -25,23 +25,22 @@ const Index = () => {
   const { user } = useAuth()
   const { toast } = useToast()
 
-  useEffect(() => {
+  const fetchPosts = async () => {
     let mounted = true
-    ;(async () => {
+    try {
       setLoading(true)
-      try {
-        const dbPosts = await getPosts()
-        if (mounted) setPosts(dbPosts)
-      } catch (err) {
-        console.error('Failed to load posts', err)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    })()
-
-    return () => {
+      const dbPosts = await getPosts()
+      if (mounted) setPosts(dbPosts)
+    } catch (err) {
+      console.error('Failed to load posts', err)
+    } finally {
+      if (mounted) setLoading(false)
       mounted = false
     }
+  }
+
+  useEffect(() => {
+    fetchPosts()
   }, [])
 
   const handlePost = async (newPostContent: {
