@@ -337,6 +337,26 @@ export async function addCommentToDesabafo(desabafoId: string, comment: any): Pr
   }
 }
 
+// Local fallback for tasks
+function readLocalTasks(): any[] {
+  try {
+    const raw = localStorage.getItem('local:tasks')
+    if (!raw) return []
+    return JSON.parse(raw)
+  } catch (err) {
+    console.warn('readLocalTasks failed', err)
+    return []
+  }
+}
+
+function writeLocalTasks(items: any[]) {
+  try {
+    localStorage.setItem('local:tasks', JSON.stringify(items))
+  } catch (err) {
+    console.warn('writeLocalTasks failed', err)
+  }
+}
+
 // Tasks persistence
 export async function getTasks(): Promise<any[]> {
   try {
@@ -344,34 +364,45 @@ export async function getTasks(): Promise<any[]> {
       supabase.from('tasks').select('*').order('id', { ascending: false }),
     )
     if (error) throw error
-    return (data || [])
+    const remote = (data || [])
+    const local = readLocalTasks()
+    return [...local, ...remote]
   } catch (err) {
-    console.warn('getTasks failed', err)
-    return []
+    console.warn('getTasks failed, returning local fallback', err)
+    return readLocalTasks()
   }
 }
 
 export async function createTask(payload: any) {
+  const record = {
+    id: payload.id || `task-${Date.now()}`,
+    title: payload.title,
+    description: payload.description || null,
+    is_completed: payload.is_completed || false,
+    priority: payload.priority || null,
+    is_public: payload.is_public !== undefined ? payload.is_public : true,
+    tags: payload.tags || [],
+    due_date: payload.due_date || null,
+    subtasks: payload.subtasks || [],
+    backgroundColor: payload.backgroundColor || null,
+    borderStyle: payload.borderStyle || null,
+  }
+
   try {
-    const record = {
-      id: payload.id,
-      title: payload.title,
-      description: payload.description || null,
-      is_completed: payload.is_completed || false,
-      priority: payload.priority || null,
-      is_public: payload.is_public !== undefined ? payload.is_public : true,
-      tags: payload.tags || [],
-      due_date: payload.due_date || null,
-      subtasks: payload.subtasks || [],
-      backgroundColor: payload.backgroundColor || null,
-      borderStyle: payload.borderStyle || null,
-    }
     const { data, error } = await withTimeout(supabase.from('tasks').insert(record).select().single())
     if (error) throw error
     return data
   } catch (err) {
-    console.warn('createTask failed', err)
-    return null
+    console.warn('createTask failed, saving locally as fallback', err)
+    try {
+      const current = readLocalTasks()
+      const next = [record, ...current]
+      writeLocalTasks(next)
+      return record
+    } catch (e) {
+      console.error('local createTask failed', e)
+      return null
+    }
   }
 }
 
@@ -381,8 +412,16 @@ export async function updateTask(id: string, payload: any) {
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('updateTask failed', err)
-    return false
+    console.warn('updateTask failed, applying local fallback', err)
+    try {
+      const current = readLocalTasks()
+      const next = current.map((t) => (t.id === id ? { ...t, ...payload } : t))
+      writeLocalTasks(next)
+      return true
+    } catch (e) {
+      console.error('local updateTask failed', e)
+      return false
+    }
   }
 }
 
@@ -392,8 +431,16 @@ export async function deleteTask(id: string) {
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('deleteTask failed', err)
-    return false
+    console.warn('deleteTask failed, applying local fallback', err)
+    try {
+      const current = readLocalTasks()
+      const next = current.filter((t) => t.id !== id)
+      writeLocalTasks(next)
+      return true
+    } catch (e) {
+      console.error('local deleteTask failed', e)
+      return false
+    }
   }
 }
 
