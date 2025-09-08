@@ -76,6 +76,7 @@ const Mensagens = () => {
 
     try {
       const created = await createMessageDb(selectedConversation.id, message)
+      console.log('[Mensagens] createMessage result', created)
       if (!created) throw new Error('Failed to persist message')
     } catch (err) {
       console.error('Failed to persist message', err)
