@@ -56,7 +56,7 @@ export const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [newComment, setNewComment] = useState('')
   const { user } = useAuth()
 
-  const handleCommentSubmit = (e: React.FormEvent) => {
+  const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newComment.trim() || !user) return
 
@@ -67,8 +67,40 @@ export const PostCard = ({ post, onDelete }: PostCardProps) => {
       created_date: new Date(),
       likes_count: 0,
     }
+
+    // optimistic update
     setComments((prev) => [...prev, comment])
     setNewComment('')
+
+    try {
+      const ok = await addCommentToPost(post.id, comment)
+      if (!ok) throw new Error('Failed to persist comment')
+    } catch (err) {
+      console.error('Failed to persist comment', err)
+      // rollback
+      setComments((prev) => prev.filter((c) => c.id !== comment.id))
+    }
+  }
+
+  const handleToggleLike = async () => {
+    if (!user) return
+    const newLiked = !isLiked
+    setIsLiked(newLiked)
+
+    const nextReactions = { ...(post.reactions || {}) }
+    const key = '👍'
+    const current = nextReactions[key] || 0
+    nextReactions[key] = newLiked ? current + 1 : Math.max(0, current - 1)
+
+    try {
+      const ok = await updatePostReactions(post.id, nextReactions)
+      if (!ok) throw new Error('Failed to persist reactions')
+      post.reactions = nextReactions
+    } catch (err) {
+      console.error('Failed to persist reactions', err)
+      // rollback UI
+      setIsLiked(!newLiked)
+    }
   }
 
   return (
