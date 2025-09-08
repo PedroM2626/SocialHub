@@ -211,10 +211,36 @@ export async function getMessagesForConversation(conversationId: string) {
 
 export async function createMessage(conversationId: string, message: any) {
   try {
+    console.log('[DB] createMessage', { conversationId, message })
     const { data, error } = await withTimeout(
       supabase.from('messages').insert({ ...message, conversation_id: conversationId }).select().single(),
     )
-    if (error) throw error
+    if (error) {
+      console.warn('[DB] createMessage insert error', error)
+      // if conversation missing (FK) try to create conversation and retry
+      const errMsg = (error as any).message || ''
+      if (errMsg.toLowerCase().includes('foreign key') || errMsg.toLowerCase().includes('constrain') || (error as any).code === '23503') {
+        console.log('[DB] createMessage: missing conversation, creating one and retrying')
+        try {
+          await withTimeout(
+            supabase.from('conversations').insert({ id: conversationId, participant_id: message.recipient_id, last_message_preview: message.content, last_message_date: message.created_date }).select(),
+          )
+          const { data: data2, error: error2 } = await withTimeout(
+            supabase.from('messages').insert({ ...message, conversation_id: conversationId }).select().single(),
+          )
+          if (error2) throw error2
+          // update conversation preview
+          await withTimeout(
+            supabase.from('conversations').update({ last_message_preview: message.content, last_message_date: message.created_date }).eq('id', conversationId),
+          )
+          return data2
+        } catch (err2) {
+          console.warn('[DB] createMessage retry failed', err2)
+          throw err2
+        }
+      }
+      throw error
+    }
     // update conversation preview
     await withTimeout(
       supabase.from('conversations').update({ last_message_preview: message.content, last_message_date: message.created_date }).eq('id', conversationId),
