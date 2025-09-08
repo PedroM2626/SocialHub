@@ -51,7 +51,7 @@ interface PostCardProps {
 
 const reactions = ['❤️', '👍', '😂', '😢', '😠']
 
-export const PostCard = ({ post, onDelete }: PostCardProps) => {
+export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
   const [isLiked, setIsLiked] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState(post.comments)
