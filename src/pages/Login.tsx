@@ -56,14 +56,17 @@ const Login = () => {
     }, 15000)
 
     try {
+      setErrorMessage(null)
       await login(data.email, data.password)
       console.log('[Login] login resolved')
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Login] login error', error)
+      const message = error?.message || 'E-mail ou senha inválidos. Por favor, tente novamente.'
+      setErrorMessage(message)
       toast({
         variant: 'destructive',
         title: 'Erro de Login',
-        description: 'E-mail ou senha inválidos. Por favor, tente novamente.',
+        description: message,
       })
     } finally {
       clearTimeout(timeout)
