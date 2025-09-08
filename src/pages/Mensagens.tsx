@@ -6,36 +6,60 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { MessageFilters, MessageFilterValues } from '@/components/messages/MessageFilters'
+import { useAuth } from '@/contexts/AuthContext'
+import { Message } from '@/lib/types'
+import { getConversationsForUser, getMessagesForConversation, createMessage as createMessageDb } from '@/lib/db'
 import {
   conversations as mockConversations,
   messages as mockMessages,
 } from '@/lib/mock-data'
-import { cn } from '@/lib/utils'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
-  MessageFilters,
-  MessageFilterValues,
-} from '@/components/messages/MessageFilters'
-import { useAuth } from '@/contexts/AuthContext'
-import { Message } from '@/lib/types'
 
 const Mensagens = () => {
   const { user } = useAuth()
-  const [conversations, setConversations] = useState(mockConversations)
-  const [messages, setMessages] = useState(mockMessages)
-  const [selectedConversation, setSelectedConversation] = useState(
-    conversations[0],
-  )
+  const [conversations, setConversations] = useState<any[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [filters, setFilters] = useState<Partial<MessageFilterValues>>({})
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      if (!user) return
+      try {
+        const convs = await getConversationsForUser(user.id)
+        if ((convs || []).length === 0) {
+          // fallback to mocks
+          setConversations(mockConversations)
+          setMessages(mockMessages)
+          setSelectedConversation(mockConversations[0])
+          return
+        }
+        if (mounted) {
+          setConversations(convs as any[])
+          const first = convs[0]
+          setSelectedConversation(first)
+          const msgs = await getMessagesForConversation(first.id)
+          setMessages(msgs as Message[])
+        }
+      } catch (err) {
+        console.error('Failed to load conversations', err)
+        setConversations(mockConversations)
+        setMessages(mockMessages)
+        setSelectedConversation(mockConversations[0])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [user])
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !user) return
+    if (!newMessage.trim() || !user || !selectedConversation) return
 
     const message: Message = {
       id: `msg-${Date.now()}`,
@@ -45,8 +69,19 @@ const Mensagens = () => {
       created_date: new Date(),
       read: false,
     }
+
+    // optimistic
     setMessages((prev) => [...prev, message])
     setNewMessage('')
+
+    try {
+      const created = await createMessageDb(selectedConversation.id, message)
+      if (!created) throw new Error('Failed to persist message')
+    } catch (err) {
+      console.error('Failed to persist message', err)
+      // rollback
+      setMessages((prev) => prev.filter((m) => m.id !== message.id))
+    }
   }
 
   const filteredConversations = conversations.filter((c) => {
