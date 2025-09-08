@@ -35,17 +35,46 @@ const Desabafos = () => {
     if (tag) {
       setSearchTerm(`#${tag}`)
     }
-    setDesabafos(mockDesabafos)
+
+    let mounted = true
+    ;(async () => {
+      try {
+        const remote = await getDesabafos()
+        if (mounted && remote.length > 0) {
+          // map remote rows to Desabafo shape used by UI
+          const mapped = remote.map((r: any) => ({
+            id: r.id,
+            user_id: r.user_id || null,
+            created_date: new Date(r.created_at),
+            content: r.content,
+            image_url: r.image_url || undefined,
+            hashtags: r.hashtags || [],
+            reactions: r.reactions || {},
+            comments: r.comments || [],
+          }))
+          setDesabafos(mapped)
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to load desabafos from DB, falling back to mock', err)
+      }
+
+      setDesabafos(mockDesabafos)
+    })()
+
+    return () => {
+      mounted = false
+    }
   }, [searchParams])
 
-  const handleCreateDesabafo = (data: {
+  const handleCreateDesabafo = async (data: {
     content: string
     hashtags: string
     imageUrl?: string
   }) => {
     const newDesabafo: Desabafo = {
       id: `desabafo-${Date.now()}`,
-      user_id: user?.id,
+      user_id: user?.id || null,
       created_date: new Date(),
       content: data.content,
       image_url: data.imageUrl,
@@ -53,13 +82,35 @@ const Desabafos = () => {
       reactions: {},
       comments: [],
     }
+
+    // optimistic
     setDesabafos((prev) => [newDesabafo, ...prev])
+
+    try {
+      const created = await createDesabafo({
+        id: newDesabafo.id,
+        content: newDesabafo.content,
+        image_url: newDesabafo.image_url || null,
+        hashtags: newDesabafo.hashtags,
+        user_id: newDesabafo.user_id || null,
+      })
+      if (!created) throw new Error('Failed to persist desabafo')
+      // replace optimistic id with stored id if differ
+      setDesabafos((prev) => prev.map((d) => (d.id === newDesabafo.id ? { ...d, id: created.id } : d)))
+      toast({ title: 'Sucesso!', description: 'Seu desabafo foi publicado anonimamente.' })
+    } catch (err) {
+      console.error('Failed to create desabafo', err)
+      // rollback
+      setDesabafos((prev) => prev.filter((d) => d.id !== newDesabafo.id))
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível publicar seu desabafo.' })
+    }
   }
 
-  const handleUpdateDesabafo = (
+  const handleUpdateDesabafo = async (
     id: string,
     data: { content: string; hashtags: string },
   ) => {
+    const previous = desabafos.find((d) => d.id === id)
     setDesabafos((prev) =>
       prev.map((d) =>
         d.id === id
@@ -74,15 +125,34 @@ const Desabafos = () => {
           : d,
       ),
     )
+
+    try {
+      const ok = await updateDesabafo(id, {
+        content: data.content,
+        hashtags: data.hashtags.split(' ').filter((h) => h.startsWith('#')),
+      })
+      if (!ok) throw new Error('Failed to persist update')
+      toast({ title: 'Sucesso!', description: 'Seu desabafo foi atualizado.' })
+    } catch (err) {
+      console.error('Failed to update desabafo', err)
+      // rollback
+      if (previous) setDesabafos((prev) => prev.map((d) => (d.id === id ? previous : d)))
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar seu desabafo.' })
+    }
   }
 
-  const handleDeleteDesabafo = (id: string) => {
+  const handleDeleteDesabafo = async (id: string) => {
+    const previous = desabafos
     setDesabafos((prev) => prev.filter((d) => d.id !== id))
-    toast({
-      variant: 'destructive',
-      title: 'Sucesso!',
-      description: 'Seu desabafo foi excluído.',
-    })
+    try {
+      const ok = await deleteDesabafo(id)
+      if (!ok) throw new Error('Failed to delete')
+      toast({ variant: 'destructive', title: 'Sucesso!', description: 'Seu desabafo foi excluído.' })
+    } catch (err) {
+      console.error('Failed to delete desabafo', err)
+      setDesabafos(previous)
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir seu desabafo.' })
+    }
   }
 
   const filteredDesabafos = desabafos
