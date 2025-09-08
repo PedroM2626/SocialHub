@@ -55,7 +55,13 @@ const Perfil = () => {
   ) => {
     const file = e.target.files?.[0]
     if (file) {
-      setter(URL.createObjectURL(file))
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // result is a base64 data URL
+        setter(result)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
