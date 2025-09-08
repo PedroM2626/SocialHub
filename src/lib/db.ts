@@ -182,3 +182,57 @@ export async function deletePost(postId: string): Promise<boolean> {
     return false
   }
 }
+
+export async function getConversationsForUser(userId: string) {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('conversations').select('*').or(`participant_id.eq.${userId}`),
+    )
+    if (error) throw error
+    return (data || [])
+  } catch (err) {
+    console.warn('getConversationsForUser failed', err)
+    return []
+  }
+}
+
+export async function getMessagesForConversation(conversationId: string) {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('messages').select('*').eq('conversation_id', conversationId).order('created_date', { ascending: true }),
+    )
+    if (error) throw error
+    return (data || [])
+  } catch (err) {
+    console.warn('getMessagesForConversation failed', err)
+    return []
+  }
+}
+
+export async function createMessage(conversationId: string, message: any) {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('messages').insert({ ...message, conversation_id: conversationId }).select().single(),
+    )
+    if (error) throw error
+    // update conversation preview
+    await withTimeout(
+      supabase.from('conversations').update({ last_message_preview: message.content, last_message_date: message.created_date }).eq('id', conversationId),
+    )
+    return data
+  } catch (err) {
+    console.warn('createMessage failed', err)
+    return null
+  }
+}
+
+export async function createConversation(conversation: any) {
+  try {
+    const { data, error } = await withTimeout(supabase.from('conversations').insert(conversation).select().single())
+    if (error) throw error
+    return data
+  } catch (err) {
+    console.warn('createConversation failed', err)
+    return null
+  }
+}
