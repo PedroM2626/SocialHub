@@ -173,7 +173,7 @@ const Tarefas = () => {
     }
   }
 
-  const toggleCompletion = (taskId: string, subtaskIdToToggle?: string) => {
+  const toggleCompletion = async (taskId: string, subtaskIdToToggle?: string) => {
     const toggleAndPropagate = (
       subtasks: Subtask[],
       isChecking: boolean,
@@ -223,34 +223,54 @@ const Tarefas = () => {
       })
     }
 
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id !== taskId) return task
+    const previous = tasks
 
-        if (!subtaskIdToToggle) {
-          const newIsCompleted = !task.is_completed
-          return {
-            ...task,
-            is_completed: newIsCompleted,
-            subtasks: toggleAndPropagate(task.subtasks, newIsCompleted),
-          }
-        }
+    const nextTasks = tasks.map((task) => {
+      if (task.id !== taskId) return task
 
-        let tempSubtasks = findAndToggle(task.subtasks)
-        let updatedSubtasks = updateParents(tempSubtasks)
-
-        const allTopLevelSubtasksCompleted = updatedSubtasks.every(
-          (s) => s.is_completed,
-        )
-
+      if (!subtaskIdToToggle) {
+        const newIsCompleted = !task.is_completed
         return {
           ...task,
-          subtasks: updatedSubtasks,
-          is_completed:
-            task.subtasks.length > 0 ? allTopLevelSubtasksCompleted : false,
+          is_completed: newIsCompleted,
+          subtasks: toggleAndPropagate(task.subtasks, newIsCompleted),
         }
-      }),
-    )
+      }
+
+      let tempSubtasks = findAndToggle(task.subtasks)
+      let updatedSubtasks = updateParents(tempSubtasks)
+
+      const allTopLevelSubtasksCompleted = updatedSubtasks.every(
+        (s) => s.is_completed,
+      )
+
+      return {
+        ...task,
+        subtasks: updatedSubtasks,
+        is_completed:
+          task.subtasks.length > 0 ? allTopLevelSubtasksCompleted : false,
+      }
+    })
+
+    // optimistic update
+    setTasks(nextTasks)
+
+    // persist the specific task change
+    const updatedTask = nextTasks.find((t) => t.id === taskId)
+    if (!updatedTask) return
+
+    try {
+      const ok = await updateTask(taskId, {
+        is_completed: updatedTask.is_completed,
+        subtasks: updatedTask.subtasks,
+      })
+      if (!ok) throw new Error('Failed to persist task update')
+    } catch (err) {
+      console.error('Failed to persist task toggle', err)
+      // rollback
+      setTasks(previous)
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o status da tarefa.' })
+    }
   }
 
   const handleExport = () => {
