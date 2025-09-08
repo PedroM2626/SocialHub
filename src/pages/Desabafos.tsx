@@ -5,7 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { desabafos as mockDesabafos } from '@/lib/mock-data'
 import { DesabafoCard } from '@/components/desabafos/DesabafoCard'
-import { getDesabafos, createDesabafo, updateDesabafo, deleteDesabafo } from '@/lib/db'
+import {
+  getDesabafos,
+  createDesabafo,
+  updateDesabafo,
+  deleteDesabafo,
+} from '@/lib/db'
 import {
   Popover,
   PopoverContent,
@@ -56,7 +61,10 @@ const Desabafos = () => {
           return
         }
       } catch (err) {
-        console.warn('Failed to load desabafos from DB, falling back to mock', err)
+        console.warn(
+          'Failed to load desabafos from DB, falling back to mock',
+          err,
+        )
       }
 
       setDesabafos(mockDesabafos)
@@ -96,13 +104,24 @@ const Desabafos = () => {
       })
       if (!created) throw new Error('Failed to persist desabafo')
       // replace optimistic id with stored id if differ
-      setDesabafos((prev) => prev.map((d) => (d.id === newDesabafo.id ? { ...d, id: created.id } : d)))
-      toast({ title: 'Sucesso!', description: 'Seu desabafo foi publicado anonimamente.' })
+      setDesabafos((prev) =>
+        prev.map((d) =>
+          d.id === newDesabafo.id ? { ...d, id: created.id } : d,
+        ),
+      )
+      toast({
+        title: 'Sucesso!',
+        description: 'Seu desabafo foi publicado anonimamente.',
+      })
     } catch (err) {
       console.error('Failed to create desabafo', err)
       // rollback
       setDesabafos((prev) => prev.filter((d) => d.id !== newDesabafo.id))
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível publicar seu desabafo.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível publicar seu desabafo.',
+      })
     }
   }
 
@@ -136,8 +155,13 @@ const Desabafos = () => {
     } catch (err) {
       console.error('Failed to update desabafo', err)
       // rollback
-      if (previous) setDesabafos((prev) => prev.map((d) => (d.id === id ? previous : d)))
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar seu desabafo.' })
+      if (previous)
+        setDesabafos((prev) => prev.map((d) => (d.id === id ? previous : d)))
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar seu desabafo.',
+      })
     }
   }
 
@@ -147,11 +171,19 @@ const Desabafos = () => {
     try {
       const ok = await deleteDesabafo(id)
       if (!ok) throw new Error('Failed to delete')
-      toast({ variant: 'destructive', title: 'Sucesso!', description: 'Seu desabafo foi excluído.' })
+      toast({
+        variant: 'destructive',
+        title: 'Sucesso!',
+        description: 'Seu desabafo foi excluído.',
+      })
     } catch (err) {
       console.error('Failed to delete desabafo', err)
       setDesabafos(previous)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir seu desabafo.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível excluir seu desabafo.',
+      })
     }
   }
 

@@ -125,7 +125,11 @@ export const DesabafoCard = ({
       console.error('Failed to persist desabafo reaction', err)
       // rollback
       setLocalReactions(previous)
-      setUserReaction(previous ? Object.keys(previous).find((k) => (previous as any)[k] > 0) || null : null)
+      setUserReaction(
+        previous
+          ? Object.keys(previous).find((k) => (previous as any)[k] > 0) || null
+          : null,
+      )
     }
   }
 
@@ -150,7 +154,11 @@ export const DesabafoCard = ({
       console.error('Failed to persist desabafo comment', err)
       // rollback
       setComments((prev) => prev.filter((c) => c.id !== comment.id))
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível publicar o comentário.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível publicar o comentário.',
+      })
     }
   }
 

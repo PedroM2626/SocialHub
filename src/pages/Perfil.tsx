@@ -79,7 +79,10 @@ const Perfil = () => {
       toast({ title: 'Sucesso!', description: 'Perfil atualizado.' })
     } catch (err) {
       console.error('Perfil update error', err)
-      toast({ title: 'Erro', description: 'Não foi possível atualizar o perfil.' })
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o perfil.',
+      })
     }
   }
 

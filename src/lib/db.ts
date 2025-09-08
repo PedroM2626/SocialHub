@@ -13,7 +13,9 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
 
 export async function getUsers(): Promise<User[]> {
   try {
-    const { data, error } = await withTimeout(supabase.from('users').select('*'))
+    const { data, error } = await withTimeout(
+      supabase.from('users').select('*'),
+    )
     if (error) throw error
     return (data || []) as User[]
   } catch (err) {
@@ -24,7 +26,9 @@ export async function getUsers(): Promise<User[]> {
 
 export async function getUserById(id: string): Promise<User | null> {
   try {
-    const { data, error } = await withTimeout(supabase.from('users').select('*').eq('id', id).limit(1).single())
+    const { data, error } = await withTimeout(
+      supabase.from('users').select('*').eq('id', id).limit(1).single(),
+    )
     if (error) throw error
     return data as User
   } catch (err) {
@@ -35,7 +39,9 @@ export async function getUserById(id: string): Promise<User | null> {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
-    const { data, error } = await withTimeout(supabase.from('users').select('*').eq('email', email).limit(1).single())
+    const { data, error } = await withTimeout(
+      supabase.from('users').select('*').eq('email', email).limit(1).single(),
+    )
     if (error) throw error
     return data as User
   } catch (err) {
@@ -46,7 +52,9 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function createUser(payload: Partial<User>): Promise<User | null> {
   try {
-    const { data, error } = await withTimeout(supabase.from('users').insert(payload).select().single())
+    const { data, error } = await withTimeout(
+      supabase.from('users').insert(payload).select().single(),
+    )
     if (error) throw error
     return data as User
   } catch (err) {
@@ -58,16 +66,23 @@ export async function createUser(payload: Partial<User>): Promise<User | null> {
 export async function getPosts(): Promise<Post[]> {
   try {
     const { data: posts, error } = await withTimeout(
-      supabase.from('posts').select('*').order('created_date', { ascending: false }),
+      supabase
+        .from('posts')
+        .select('*')
+        .order('created_date', { ascending: false }),
     )
     if (error) throw error
     const postsArr = (posts || []) as any[]
 
     // fetch authors
-    const userIds = Array.from(new Set(postsArr.map((p) => p.author_id).filter(Boolean)))
+    const userIds = Array.from(
+      new Set(postsArr.map((p) => p.author_id).filter(Boolean)),
+    )
     let usersMap: Record<string, User> = {}
     if (userIds.length > 0) {
-      const { data: users } = await withTimeout(supabase.from('users').select('*').in('id', userIds))
+      const { data: users } = await withTimeout(
+        supabase.from('users').select('*').in('id', userIds),
+      )
       usersMap = (users || []).reduce((acc: any, u: any) => {
         acc[u.id] = u
         return acc
@@ -106,7 +121,9 @@ export async function createPost(payload: Partial<Post>): Promise<Post | null> {
       reactions: payload.reactions || {},
       comments: payload.comments || [],
     }
-    const { data, error } = await withTimeout(supabase.from('posts').insert(record).select().single())
+    const { data, error } = await withTimeout(
+      supabase.from('posts').insert(record).select().single(),
+    )
     if (error) throw error
     // attach author
     const author = await getUserById(record.author_id)
@@ -128,9 +145,14 @@ export async function createPost(payload: Partial<Post>): Promise<Post | null> {
   }
 }
 
-export async function updateUser(id: string, payload: Partial<User>): Promise<User | null> {
+export async function updateUser(
+  id: string,
+  payload: Partial<User>,
+): Promise<User | null> {
   try {
-    const { data, error } = await withTimeout(supabase.from('users').update(payload).eq('id', id).select().single())
+    const { data, error } = await withTimeout(
+      supabase.from('users').update(payload).eq('id', id).select().single(),
+    )
     if (error) throw error
     return data as User
   } catch (err) {
@@ -139,7 +161,10 @@ export async function updateUser(id: string, payload: Partial<User>): Promise<Us
   }
 }
 
-export async function addCommentToPost(postId: string, comment: any): Promise<boolean> {
+export async function addCommentToPost(
+  postId: string,
+  comment: any,
+): Promise<boolean> {
   try {
     // Fetch existing comments
     const { data: post, error: fetchErr } = await withTimeout(
@@ -149,7 +174,10 @@ export async function addCommentToPost(postId: string, comment: any): Promise<bo
     const existingComments = post?.comments || []
     const newComments = [...existingComments, comment]
     const { error } = await withTimeout(
-      supabase.from('posts').update({ comments: newComments, comments_count: newComments.length }).eq('id', postId),
+      supabase
+        .from('posts')
+        .update({ comments: newComments, comments_count: newComments.length })
+        .eq('id', postId),
     )
     if (error) throw error
     return true
@@ -159,7 +187,10 @@ export async function addCommentToPost(postId: string, comment: any): Promise<bo
   }
 }
 
-export async function updatePostReactions(postId: string, reactions: Record<string, number>): Promise<boolean> {
+export async function updatePostReactions(
+  postId: string,
+  reactions: Record<string, number>,
+): Promise<boolean> {
   try {
     const { error } = await withTimeout(
       supabase.from('posts').update({ reactions }).eq('id', postId),
@@ -172,7 +203,10 @@ export async function updatePostReactions(postId: string, reactions: Record<stri
   }
 }
 
-export async function updatePostLikes(postId: string, likes_count: number): Promise<boolean> {
+export async function updatePostLikes(
+  postId: string,
+  likes_count: number,
+): Promise<boolean> {
   try {
     const { error } = await withTimeout(
       supabase.from('posts').update({ likes_count }).eq('id', postId),
@@ -209,10 +243,13 @@ function writeLocalDesabafos(items: any[]) {
 export async function getDesabafos(): Promise<any[]> {
   try {
     const { data, error } = await withTimeout(
-      supabase.from('desabafos').select('*').order('created_at', { ascending: false }),
+      supabase
+        .from('desabafos')
+        .select('*')
+        .order('created_at', { ascending: false }),
     )
     if (error) throw error
-    const remote = (data || [])
+    const remote = data || []
     // include local fallback items as well
     const local = readLocalDesabafos()
     return [...local, ...remote]
@@ -222,7 +259,13 @@ export async function getDesabafos(): Promise<any[]> {
   }
 }
 
-export async function createDesabafo(payload: { id?: string; content: string; image_url?: string | null; hashtags?: string[] | null; user_id?: string | null }) {
+export async function createDesabafo(payload: {
+  id?: string
+  content: string
+  image_url?: string | null
+  hashtags?: string[] | null
+  user_id?: string | null
+}) {
   const record = {
     id: payload.id || `desabafo-${Date.now()}`,
     content: payload.content,
@@ -253,9 +296,18 @@ export async function createDesabafo(payload: { id?: string; content: string; im
   }
 }
 
-export async function updateDesabafo(id: string, payload: { content?: string; hashtags?: string[] | null; image_url?: string | null }) {
+export async function updateDesabafo(
+  id: string,
+  payload: {
+    content?: string
+    hashtags?: string[] | null
+    image_url?: string | null
+  },
+) {
   try {
-    const { error } = await withTimeout(supabase.from('desabafos').update(payload).eq('id', id))
+    const { error } = await withTimeout(
+      supabase.from('desabafos').update(payload).eq('id', id),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -274,7 +326,9 @@ export async function updateDesabafo(id: string, payload: { content?: string; ha
 
 export async function deleteDesabafo(id: string) {
   try {
-    const { error } = await withTimeout(supabase.from('desabafos').delete().eq('id', id))
+    const { error } = await withTimeout(
+      supabase.from('desabafos').delete().eq('id', id),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -291,9 +345,14 @@ export async function deleteDesabafo(id: string) {
   }
 }
 
-export async function updateDesabafoReactions(id: string, reactions: Record<string, number>): Promise<boolean> {
+export async function updateDesabafoReactions(
+  id: string,
+  reactions: Record<string, number>,
+): Promise<boolean> {
   try {
-    const { error } = await withTimeout(supabase.from('desabafos').update({ reactions }).eq('id', id))
+    const { error } = await withTimeout(
+      supabase.from('desabafos').update({ reactions }).eq('id', id),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -310,15 +369,27 @@ export async function updateDesabafoReactions(id: string, reactions: Record<stri
   }
 }
 
-export async function addCommentToDesabafo(desabafoId: string, comment: any): Promise<boolean> {
+export async function addCommentToDesabafo(
+  desabafoId: string,
+  comment: any,
+): Promise<boolean> {
   try {
     const { data: row, error: fetchErr } = await withTimeout(
-      supabase.from('desabafos').select('comments').eq('id', desabafoId).single(),
+      supabase
+        .from('desabafos')
+        .select('comments')
+        .eq('id', desabafoId)
+        .single(),
     )
     if (fetchErr) throw fetchErr
     const existing = row?.comments || []
     const newComments = [...existing, comment]
-    const { error } = await withTimeout(supabase.from('desabafos').update({ comments: newComments }).eq('id', desabafoId))
+    const { error } = await withTimeout(
+      supabase
+        .from('desabafos')
+        .update({ comments: newComments })
+        .eq('id', desabafoId),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -326,7 +397,9 @@ export async function addCommentToDesabafo(desabafoId: string, comment: any): Pr
     try {
       const current = readLocalDesabafos()
       const next = current.map((d) =>
-        d.id === desabafoId ? { ...d, comments: [...(d.comments || []), comment] } : d,
+        d.id === desabafoId
+          ? { ...d, comments: [...(d.comments || []), comment] }
+          : d,
       )
       writeLocalDesabafos(next)
       return true
@@ -364,7 +437,7 @@ export async function getTasks(): Promise<any[]> {
       supabase.from('tasks').select('*').order('id', { ascending: false }),
     )
     if (error) throw error
-    const remote = (data || [])
+    const remote = data || []
     const local = readLocalTasks()
     return [...local, ...remote]
   } catch (err) {
@@ -389,7 +462,9 @@ export async function createTask(payload: any) {
   }
 
   try {
-    const { data, error } = await withTimeout(supabase.from('tasks').insert(record).select().single())
+    const { data, error } = await withTimeout(
+      supabase.from('tasks').insert(record).select().single(),
+    )
     if (error) throw error
     return data
   } catch (err) {
@@ -408,7 +483,9 @@ export async function createTask(payload: any) {
 
 export async function updateTask(id: string, payload: any) {
   try {
-    const { error } = await withTimeout(supabase.from('tasks').update(payload).eq('id', id))
+    const { error } = await withTimeout(
+      supabase.from('tasks').update(payload).eq('id', id),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -427,7 +504,9 @@ export async function updateTask(id: string, payload: any) {
 
 export async function deleteTask(id: string) {
   try {
-    const { error } = await withTimeout(supabase.from('tasks').delete().eq('id', id))
+    const { error } = await withTimeout(
+      supabase.from('tasks').delete().eq('id', id),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -446,7 +525,9 @@ export async function deleteTask(id: string) {
 
 export async function deletePost(postId: string): Promise<boolean> {
   try {
-    const { error } = await withTimeout(supabase.from('posts').delete().eq('id', postId))
+    const { error } = await withTimeout(
+      supabase.from('posts').delete().eq('id', postId),
+    )
     if (error) throw error
     return true
   } catch (err) {
@@ -458,10 +539,13 @@ export async function deletePost(postId: string): Promise<boolean> {
 export async function getConversationsForUser(userId: string) {
   try {
     const { data, error } = await withTimeout(
-      supabase.from('conversations').select('*').or(`participant_id.eq.${userId}`),
+      supabase
+        .from('conversations')
+        .select('*')
+        .or(`participant_id.eq.${userId}`),
     )
     if (error) throw error
-    return (data || [])
+    return data || []
   } catch (err) {
     console.warn('getConversationsForUser failed', err)
     return []
@@ -471,10 +555,14 @@ export async function getConversationsForUser(userId: string) {
 export async function getMessagesForConversation(conversationId: string) {
   try {
     const { data, error } = await withTimeout(
-      supabase.from('messages').select('*').eq('conversation_id', conversationId).order('created_date', { ascending: true }),
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_date', { ascending: true }),
     )
     if (error) throw error
-    return (data || [])
+    return data || []
   } catch (err) {
     console.warn('getMessagesForConversation failed', err)
     return []
@@ -485,25 +573,53 @@ export async function createMessage(conversationId: string, message: any) {
   try {
     console.log('[DB] createMessage', { conversationId, message })
     const { data, error } = await withTimeout(
-      supabase.from('messages').insert({ ...message, conversation_id: conversationId }).select().single(),
+      supabase
+        .from('messages')
+        .insert({ ...message, conversation_id: conversationId })
+        .select()
+        .single(),
     )
     if (error) {
       console.warn('[DB] createMessage insert error', error)
       // if conversation missing (FK) try to create conversation and retry
       const errMsg = (error as any).message || ''
-      if (errMsg.toLowerCase().includes('foreign key') || errMsg.toLowerCase().includes('constrain') || (error as any).code === '23503') {
-        console.log('[DB] createMessage: missing conversation, creating one and retrying')
+      if (
+        errMsg.toLowerCase().includes('foreign key') ||
+        errMsg.toLowerCase().includes('constrain') ||
+        (error as any).code === '23503'
+      ) {
+        console.log(
+          '[DB] createMessage: missing conversation, creating one and retrying',
+        )
         try {
           await withTimeout(
-            supabase.from('conversations').insert({ id: conversationId, participant_id: message.recipient_id, last_message_preview: message.content, last_message_date: message.created_date }).select(),
+            supabase
+              .from('conversations')
+              .insert({
+                id: conversationId,
+                participant_id: message.recipient_id,
+                last_message_preview: message.content,
+                last_message_date: message.created_date,
+              })
+              .select(),
           )
           const { data: data2, error: error2 } = await withTimeout(
-            supabase.from('messages').insert({ ...message, conversation_id: conversationId }).select().single(),
+            supabase
+              .from('messages')
+              .insert({ ...message, conversation_id: conversationId })
+              .select()
+              .single(),
           )
           if (error2) throw error2
           // update conversation preview
           await withTimeout(
-            supabase.from('conversations').update({ last_message_preview: message.content, last_message_date: message.created_date }).eq('id', conversationId),
+            supabase
+              .from('conversations')
+              .update({
+                last_message_preview: message.content,
+                last_message_date: message.created_date,
+              })
+              .eq('id', conversationId),
           )
           return data2
         } catch (err2) {
@@ -515,7 +631,13 @@ export async function createMessage(conversationId: string, message: any) {
     }
     // update conversation preview
     await withTimeout(
-      supabase.from('conversations').update({ last_message_preview: message.content, last_message_date: message.created_date }).eq('id', conversationId),
+      supabase
+        .from('conversations')
+        .update({
+          last_message_preview: message.content,
+          last_message_date: message.created_date,
+        })
+        .eq('id', conversationId),
     )
     return data
   } catch (err) {
@@ -526,7 +648,9 @@ export async function createMessage(conversationId: string, message: any) {
 
 export async function createConversation(conversation: any) {
   try {
-    const { data, error } = await withTimeout(supabase.from('conversations').insert(conversation).select().single())
+    const { data, error } = await withTimeout(
+      supabase.from('conversations').insert(conversation).select().single(),
+    )
     if (error) throw error
     return data
   } catch (err) {

@@ -112,12 +112,18 @@ const Tarefas = () => {
       const created = await createTask(newTask)
       if (!created) throw new Error('Failed to persist task')
       // replace id if backend returned different
-      setTasks((prev) => prev.map((t) => (t.id === newTask.id ? { ...t, id: created.id } : t)))
+      setTasks((prev) =>
+        prev.map((t) => (t.id === newTask.id ? { ...t, id: created.id } : t)),
+      )
       toast({ title: 'Sucesso!', description: 'Tarefa criada com sucesso.' })
     } catch (err) {
       console.error('Failed to create task', err)
       setTasks((prev) => prev.filter((t) => t.id !== newTask.id))
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível criar a tarefa.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível criar a tarefa.',
+      })
     }
   }
 
@@ -146,16 +152,28 @@ const Tarefas = () => {
       descriptionAlignment: data.descriptionAlignment,
     }
 
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task)))
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, ...updatedTask } : task,
+      ),
+    )
 
     try {
       const ok = await updateTask(taskId, updatedTask)
       if (!ok) throw new Error('Failed to persist update')
-      toast({ title: 'Sucesso!', description: 'Tarefa atualizada com sucesso.' })
+      toast({
+        title: 'Sucesso!',
+        description: 'Tarefa atualizada com sucesso.',
+      })
     } catch (err) {
       console.error('Failed to update task', err)
-      if (previous) setTasks((prev) => prev.map((t) => (t.id === taskId ? previous : t)))
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar a tarefa.' })
+      if (previous)
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? previous : t)))
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar a tarefa.',
+      })
     }
   }
 
@@ -165,15 +183,26 @@ const Tarefas = () => {
     try {
       const ok = await deleteTask(taskId)
       if (!ok) throw new Error('Failed to delete')
-      toast({ variant: 'destructive', title: 'Tarefa excluída!', description: 'A tarefa foi removida da sua lista.' })
+      toast({
+        variant: 'destructive',
+        title: 'Tarefa excluída!',
+        description: 'A tarefa foi removida da sua lista.',
+      })
     } catch (err) {
       console.error('Failed to delete task', err)
       setTasks(previous)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir a tarefa.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível excluir a tarefa.',
+      })
     }
   }
 
-  const toggleCompletion = async (taskId: string, subtaskIdToToggle?: string) => {
+  const toggleCompletion = async (
+    taskId: string,
+    subtaskIdToToggle?: string,
+  ) => {
     const toggleAndPropagate = (
       subtasks: Subtask[],
       isChecking: boolean,
@@ -269,7 +298,11 @@ const Tarefas = () => {
       console.error('Failed to persist task toggle', err)
       // rollback
       setTasks(previous)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o status da tarefa.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status da tarefa.',
+      })
     }
   }
 

@@ -42,7 +42,12 @@ const Login = () => {
   })
 
   const mountedRef = useRef(true)
-  useEffect(() => () => { mountedRef.current = false }, [])
+  useEffect(
+    () => () => {
+      mountedRef.current = false
+    },
+    [],
+  )
 
   const onSubmit = async (data: LoginFormValues) => {
     console.log('[Login] submit', data.email)
@@ -61,7 +66,9 @@ const Login = () => {
       console.log('[Login] login resolved')
     } catch (error: any) {
       console.error('[Login] login error', error)
-      const message = error?.message || 'E-mail ou senha inválidos. Por favor, tente novamente.'
+      const message =
+        error?.message ||
+        'E-mail ou senha inválidos. Por favor, tente novamente.'
       setErrorMessage(message)
       toast({
         variant: 'destructive',

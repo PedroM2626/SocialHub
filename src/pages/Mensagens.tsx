@@ -7,11 +7,22 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { MessageFilters, MessageFilterValues } from '@/components/messages/MessageFilters'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  MessageFilters,
+  MessageFilterValues,
+} from '@/components/messages/MessageFilters'
 import { useAuth } from '@/contexts/AuthContext'
 import { Message } from '@/lib/types'
-import { getConversationsForUser, getMessagesForConversation, createMessage as createMessageDb } from '@/lib/db'
+import {
+  getConversationsForUser,
+  getMessagesForConversation,
+  createMessage as createMessageDb,
+} from '@/lib/db'
 import {
   conversations as mockConversations,
   messages as mockMessages,
@@ -21,7 +32,9 @@ const Mensagens = () => {
   const { user } = useAuth()
   const [conversations, setConversations] = useState<any[]>([])
   const [messages, setMessages] = useState<Message[]>([])
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(
+    null,
+  )
   const [newMessage, setNewMessage] = useState('')
   const [filters, setFilters] = useState<Partial<MessageFilterValues>>({})
 
@@ -179,12 +192,16 @@ const Mensagens = () => {
         <div className="hidden md:flex flex-1 flex-col">
           <div className="p-4 border-b border-border/50 flex items-center gap-4">
             <Avatar>
-              <AvatarImage src={selectedConversation.participant.profile_image} />
+              <AvatarImage
+                src={selectedConversation.participant.profile_image}
+              />
               <AvatarFallback>
                 {selectedConversation.participant.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
-            <h3 className="font-bold">{selectedConversation.participant.name}</h3>
+            <h3 className="font-bold">
+              {selectedConversation.participant.name}
+            </h3>
           </div>
 
           <ScrollArea className="flex-1 p-4 space-y-4">

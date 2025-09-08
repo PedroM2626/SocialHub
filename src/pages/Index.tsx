@@ -160,7 +160,12 @@ const Index = () => {
           </>
         ) : (
           filteredPosts.map((post) => (
-            <PostCard key={post.id} post={post} onDelete={handleDeletePost} onReact={() => fetchPosts()} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onDelete={handleDeletePost}
+              onReact={() => fetchPosts()}
+            />
           ))
         )}
       </div>

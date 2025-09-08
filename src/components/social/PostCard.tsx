@@ -30,7 +30,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { Post, Comment } from '@/lib/types'
 import { useAuth } from '@/contexts/AuthContext'
-import { addCommentToPost, updatePostReactions, updatePostLikes, deletePost } from '@/lib/db'
+import {
+  addCommentToPost,
+  updatePostReactions,
+  updatePostLikes,
+  deletePost,
+} from '@/lib/db'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,7 +110,9 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
     setIsLiked(newLiked)
 
     const previousLikes = post.likes_count || 0
-    const nextLikes = newLiked ? previousLikes + 1 : Math.max(0, previousLikes - 1)
+    const nextLikes = newLiked
+      ? previousLikes + 1
+      : Math.max(0, previousLikes - 1)
     post.likes_count = nextLikes
 
     try {
@@ -132,7 +139,9 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
     // optimistic
     const nextReactions = { ...(post.reactions || {}) }
     const current = nextReactions[emoji] || 0
-    nextReactions[emoji] = alreadyReacted ? Math.max(0, current - 1) : current + 1
+    nextReactions[emoji] = alreadyReacted
+      ? Math.max(0, current - 1)
+      : current + 1
     const previousReactions = { ...(post.reactions || {}) }
     post.reactions = nextReactions
 
@@ -213,10 +222,12 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => {
+                <AlertDialogAction
+                  onClick={async () => {
                     const ok = await deletePost(post.id)
                     if (ok) onDelete?.(post.id)
-                  }}>
+                  }}
+                >
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
