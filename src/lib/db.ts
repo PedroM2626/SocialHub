@@ -186,35 +186,70 @@ export async function updatePostLikes(postId: string, likes_count: number): Prom
 }
 
 // Desabafos (anonymous vent) persistence
+// Local fallback storage helpers (browser localStorage)
+function readLocalDesabafos(): any[] {
+  try {
+    const raw = localStorage.getItem('local:desabafos')
+    if (!raw) return []
+    return JSON.parse(raw)
+  } catch (err) {
+    console.warn('readLocalDesabafos failed', err)
+    return []
+  }
+}
+
+function writeLocalDesabafos(items: any[]) {
+  try {
+    localStorage.setItem('local:desabafos', JSON.stringify(items))
+  } catch (err) {
+    console.warn('writeLocalDesabafos failed', err)
+  }
+}
+
 export async function getDesabafos(): Promise<any[]> {
   try {
     const { data, error } = await withTimeout(
       supabase.from('desabafos').select('*').order('created_at', { ascending: false }),
     )
     if (error) throw error
-    return (data || [])
+    const remote = (data || [])
+    // include local fallback items as well
+    const local = readLocalDesabafos()
+    return [...local, ...remote]
   } catch (err) {
-    console.warn('getDesabafos failed', err)
-    return []
+    console.warn('getDesabafos failed, returning local fallback', err)
+    return readLocalDesabafos()
   }
 }
 
 export async function createDesabafo(payload: { id?: string; content: string; image_url?: string | null; hashtags?: string[] | null; user_id?: string | null }) {
+  const record = {
+    id: payload.id || `desabafo-${Date.now()}`,
+    content: payload.content,
+    image_url: payload.image_url || null,
+    hashtags: payload.hashtags || [],
+    user_id: payload.user_id || null,
+    created_at: new Date().toISOString(),
+  }
+
   try {
-    const record = {
-      id: payload.id,
-      content: payload.content,
-      image_url: payload.image_url || null,
-      hashtags: payload.hashtags || [],
-      user_id: payload.user_id || null,
-      created_at: new Date().toISOString(),
-    }
-    const { data, error } = await withTimeout(supabase.from('desabafos').insert(record).select().single())
+    const { data, error } = await withTimeout(
+      supabase.from('desabafos').insert(record).select().single(),
+    )
     if (error) throw error
     return data
   } catch (err) {
-    console.warn('createDesabafo failed', err)
-    return null
+    console.warn('createDesabafo failed, saving locally as fallback', err)
+    // persist to localStorage as fallback
+    try {
+      const current = readLocalDesabafos()
+      const next = [record, ...current]
+      writeLocalDesabafos(next)
+      return record
+    } catch (e) {
+      console.error('Failed to save desabafo locally', e)
+      return null
+    }
   }
 }
 
