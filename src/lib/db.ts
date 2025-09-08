@@ -172,6 +172,19 @@ export async function updatePostReactions(postId: string, reactions: Record<stri
   }
 }
 
+export async function updatePostLikes(postId: string, likes_count: number): Promise<boolean> {
+  try {
+    const { error } = await withTimeout(
+      supabase.from('posts').update({ likes_count }).eq('id', postId),
+    )
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('updatePostLikes failed', err)
+    return false
+  }
+}
+
 export async function deletePost(postId: string): Promise<boolean> {
   try {
     const { error } = await withTimeout(supabase.from('posts').delete().eq('id', postId))
