@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { updateDesabafoReactions, addCommentToDesabafo } from '@/lib/db'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
