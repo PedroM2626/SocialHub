@@ -185,6 +185,61 @@ export async function updatePostLikes(postId: string, likes_count: number): Prom
   }
 }
 
+// Desabafos (anonymous vent) persistence
+export async function getDesabafos(): Promise<any[]> {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('desabafos').select('*').order('created_at', { ascending: false }),
+    )
+    if (error) throw error
+    return (data || [])
+  } catch (err) {
+    console.warn('getDesabafos failed', err)
+    return []
+  }
+}
+
+export async function createDesabafo(payload: { id?: string; content: string; image_url?: string | null; hashtags?: string[] | null; user_id?: string | null }) {
+  try {
+    const record = {
+      id: payload.id,
+      content: payload.content,
+      image_url: payload.image_url || null,
+      hashtags: payload.hashtags || [],
+      user_id: payload.user_id || null,
+      created_at: new Date().toISOString(),
+    }
+    const { data, error } = await withTimeout(supabase.from('desabafos').insert(record).select().single())
+    if (error) throw error
+    return data
+  } catch (err) {
+    console.warn('createDesabafo failed', err)
+    return null
+  }
+}
+
+export async function updateDesabafo(id: string, payload: { content?: string; hashtags?: string[] | null; image_url?: string | null }) {
+  try {
+    const { error } = await withTimeout(supabase.from('desabafos').update(payload).eq('id', id))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('updateDesabafo failed', err)
+    return false
+  }
+}
+
+export async function deleteDesabafo(id: string) {
+  try {
+    const { error } = await withTimeout(supabase.from('desabafos').delete().eq('id', id))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('deleteDesabafo failed', err)
+    return false
+  }
+}
+
 export async function deletePost(postId: string): Promise<boolean> {
   try {
     const { error } = await withTimeout(supabase.from('posts').delete().eq('id', postId))
