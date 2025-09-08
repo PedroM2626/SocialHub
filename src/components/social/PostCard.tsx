@@ -98,7 +98,7 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
       const ok = await updatePostReactions(post.id, nextReactions)
       if (!ok) throw new Error('Failed to persist reactions')
       post.reactions = nextReactions
-      if (typeof props.onReact === 'function') props.onReact(post.id)
+      if (typeof onReact === 'function') onReact(post.id)
     } catch (err) {
       console.error('Failed to persist reactions', err)
       // rollback UI
@@ -116,7 +116,7 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
       const ok = await updatePostReactions(post.id, nextReactions)
       if (!ok) throw new Error('Failed to persist reactions')
       post.reactions = nextReactions
-      if (typeof props.onReact === 'function') props.onReact(post.id)
+      if (typeof onReact === 'function') onReact(post.id)
     } catch (err) {
       console.error('Failed to persist reaction', err)
     }
