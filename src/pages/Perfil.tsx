@@ -66,17 +66,19 @@ const Perfil = () => {
   }
 
   const handleSaveChanges = async () => {
-    const updated = await updateUser(currentUser.id, {
+    const payload = {
       name,
       bio,
       website,
       interests: interests.split(',').map((i) => i.trim()),
       profile_image: profileImage || currentUser.profile_image,
       cover_image: coverImage || currentUser.cover_image,
-    })
-    if (updated) {
+    }
+    try {
+      await updateUser(payload)
       toast({ title: 'Sucesso!', description: 'Perfil atualizado.' })
-    } else {
+    } catch (err) {
+      console.error('Perfil update error', err)
       toast({ title: 'Erro', description: 'Não foi possível atualizar o perfil.' })
     }
   }
