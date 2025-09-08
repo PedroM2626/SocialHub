@@ -104,21 +104,22 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
     // optimistic UI
     setIsLiked(newLiked)
 
-    const nextReactions = { ...(post.reactions || {}) }
-    const likeKey = '👍'
-    const current = nextReactions[likeKey] || 0
-    nextReactions[likeKey] = newLiked ? current + 1 : Math.max(0, current - 1)
+    const previousLikes = post.likes_count || 0
+    const nextLikes = newLiked ? previousLikes + 1 : Math.max(0, previousLikes - 1)
+    post.likes_count = nextLikes
 
     try {
-      const ok = await updatePostReactions(post.id, nextReactions)
-      if (!ok) throw new Error('Failed to persist reactions')
-      post.reactions = nextReactions
+      const ok = await updatePostLikes(post.id, nextLikes)
+      if (!ok) throw new Error('Failed to persist likes')
+
       if (newLiked) localStorage.setItem(key, '1')
       else localStorage.removeItem(key)
+
       if (typeof onReact === 'function') onReact(post.id)
     } catch (err) {
-      console.error('Failed to persist reactions', err)
-      // rollback UI
+      console.error('Failed to persist likes', err)
+      // rollback
+      post.likes_count = previousLikes
       setIsLiked(currentlyLiked)
     }
   }
