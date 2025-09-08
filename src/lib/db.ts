@@ -240,6 +240,34 @@ export async function deleteDesabafo(id: string) {
   }
 }
 
+export async function updateDesabafoReactions(id: string, reactions: Record<string, number>): Promise<boolean> {
+  try {
+    const { error } = await withTimeout(supabase.from('desabafos').update({ reactions }).eq('id', id))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('updateDesabafoReactions failed', err)
+    return false
+  }
+}
+
+export async function addCommentToDesabafo(desabafoId: string, comment: any): Promise<boolean> {
+  try {
+    const { data: row, error: fetchErr } = await withTimeout(
+      supabase.from('desabafos').select('comments').eq('id', desabafoId).single(),
+    )
+    if (fetchErr) throw fetchErr
+    const existing = row?.comments || []
+    const newComments = [...existing, comment]
+    const { error } = await withTimeout(supabase.from('desabafos').update({ comments: newComments }).eq('id', desabafoId))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('addCommentToDesabafo failed', err)
+    return false
+  }
+}
+
 export async function deletePost(postId: string): Promise<boolean> {
   try {
     const { error } = await withTimeout(supabase.from('posts').delete().eq('id', postId))
