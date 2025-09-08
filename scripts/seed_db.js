@@ -74,6 +74,24 @@ async function main() {
         backgroundColor TEXT,
         borderStyle TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS conversations (
+        id TEXT PRIMARY KEY,
+        participant_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        last_message_preview TEXT,
+        last_message_date TIMESTAMPTZ,
+        unread_count INT DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS messages (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT REFERENCES conversations(id) ON DELETE CASCADE,
+        sender_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        recipient_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        content TEXT,
+        created_date TIMESTAMPTZ,
+        read BOOLEAN DEFAULT FALSE
+      );
     `)
 
     // Insert sample users
