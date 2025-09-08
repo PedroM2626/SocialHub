@@ -35,11 +35,22 @@ const PerfilUsuario = () => {
       setLoading(true)
       await new Promise((res) => setTimeout(res, 500))
 
-      const profileData = mockUsers.find((u) => u.id === userId)
+      let profileData = mockUsers.find((u) => u.id === userId)
 
       if (!profileData) {
-        setLoading(false)
-        return
+        // try to find author in posts
+        profileData = mockPosts.find((p) => p.author.id === userId)?.author
+
+        // try community messages
+        if (!profileData) profileData = mockCommunityMessages.find((m) => m.author.id === userId)?.author
+
+        // try conversations participants
+        if (!profileData) profileData = mockConversations.find((c) => c.participant?.id === userId)?.participant
+
+        if (!profileData) {
+          setLoading(false)
+          return
+        }
       }
 
       setProfile(profileData)
