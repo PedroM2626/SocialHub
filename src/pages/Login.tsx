@@ -33,6 +33,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 const Login = () => {
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { login } = useAuth()
   const { toast } = useToast()
   const form = useForm<LoginFormValues>({
