@@ -13,8 +13,8 @@ import {
 import { PostFilters, PostFilterValues } from '@/components/social/PostFilters'
 import { useAuth } from '@/contexts/AuthContext'
 import { Skeleton } from '@/components/ui/skeleton'
-import { posts as mockPosts } from '@/lib/mock-data'
 import { useToast } from '@/components/ui/use-toast'
+import { getPosts, createPost as createPostDb } from '@/lib/db'
 
 const Index = () => {
   const [posts, setPosts] = useState<Post[]>([])
@@ -24,12 +24,22 @@ const Index = () => {
   const { user } = useAuth()
   const { toast } = useToast()
 
+  const fetchPosts = async () => {
+    let mounted = true
+    try {
+      setLoading(true)
+      const dbPosts = await getPosts()
+      if (mounted) setPosts(dbPosts)
+    } catch (err) {
+      console.error('Failed to load posts', err)
+    } finally {
+      if (mounted) setLoading(false)
+      mounted = false
+    }
+  }
+
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setPosts(mockPosts)
-      setLoading(false)
-    }, 1000)
+    fetchPosts()
   }, [])
 
   const handlePost = async (newPostContent: {
@@ -43,7 +53,7 @@ const Index = () => {
       .split(' ')
       .filter((h) => h.startsWith('#'))
 
-    const newPost: Post = {
+    const newPostPayload: Post = {
       id: `post-${Date.now()}`,
       author: user,
       created_date: new Date(),
@@ -56,7 +66,12 @@ const Index = () => {
       reactions: {},
     }
 
-    setPosts((currentPosts) => [newPost, ...currentPosts])
+    try {
+      const created = await createPostDb(newPostPayload)
+      if (created) setPosts((currentPosts) => [created, ...currentPosts])
+    } catch (err) {
+      console.error('Failed to create post', err)
+    }
   }
 
   const handleDeletePost = (postId: string) => {
@@ -145,7 +160,12 @@ const Index = () => {
           </>
         ) : (
           filteredPosts.map((post) => (
-            <PostCard key={post.id} post={post} onDelete={handleDeletePost} />
+            <PostCard
+              key={post.id}
+              post={post}
+              onDelete={handleDeletePost}
+              onReact={() => fetchPosts()}
+            />
           ))
         )}
       </div>

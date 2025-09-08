@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const registerSchema = z
   .object({
@@ -51,11 +51,25 @@ const Register = () => {
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   })
 
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
+
   const onSubmit = async (data: RegisterFormValues) => {
+    console.log('[Register] submit', data.email)
+    if (!mountedRef.current) return
     setLoading(true)
+    let timeout = setTimeout(() => {
+      if (mountedRef.current) {
+        console.error('[Register] timeout clearing loading')
+        setLoading(false)
+      }
+    }, 15000)
+
     try {
       await register(data.name, data.email, data.password)
+      console.log('[Register] register resolved')
     } catch (error: any) {
+      console.error('[Register] register error', error)
       toast({
         variant: 'destructive',
         title: 'Erro no Cadastro',
@@ -64,7 +78,8 @@ const Register = () => {
           'Não foi possível criar a conta. Tente outro e-mail.',
       })
     } finally {
-      setLoading(false)
+      clearTimeout(timeout)
+      if (mountedRef.current) setLoading(false)
     }
   }
 

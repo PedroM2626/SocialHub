@@ -55,20 +55,35 @@ const Perfil = () => {
   ) => {
     const file = e.target.files?.[0]
     if (file) {
-      setter(URL.createObjectURL(file))
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // result is a base64 data URL
+        setter(result)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
-  const handleSaveChanges = () => {
-    updateUser({
+  const handleSaveChanges = async () => {
+    const payload = {
       name,
       bio,
       website,
       interests: interests.split(',').map((i) => i.trim()),
       profile_image: profileImage || currentUser.profile_image,
       cover_image: coverImage || currentUser.cover_image,
-    })
-    toast({ title: 'Sucesso!', description: 'Perfil atualizado.' })
+    }
+    try {
+      await updateUser(payload)
+      toast({ title: 'Sucesso!', description: 'Perfil atualizado.' })
+    } catch (err) {
+      console.error('Perfil update error', err)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o perfil.',
+      })
+    }
   }
 
   const handleDeletePost = (postId: string) => {

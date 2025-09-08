@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Plus,
   Search,
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { tasks as mockTasks } from '@/lib/mock-data'
 import { TaskCard } from '@/components/tasks/TaskCard'
+import { getTasks, createTask, updateTask, deleteTask } from '@/lib/db'
 import {
   Popover,
   PopoverContent,
@@ -35,13 +36,48 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const Tarefas = () => {
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
+
+  // load remote tasks if available
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const remote = await getTasks()
+        if (mounted && remote.length > 0) {
+          const mapped = remote.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description || '',
+            is_completed: r.is_completed || false,
+            priority: (r.priority as any) || 'medium',
+            is_public: r.is_public !== undefined ? r.is_public : true,
+            tags: r.tags || [],
+            due_date: r.due_date || null,
+            subtasks: r.subtasks || [],
+            attachments: r.attachments || [],
+            backgroundColor: r.backgroundColor || null,
+            borderStyle: r.borderStyle || null,
+            titleAlignment: r.titleAlignment || 'left',
+            descriptionAlignment: r.descriptionAlignment || 'left',
+          }))
+          setTasks(mapped)
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to load tasks from DB, falling back to mock', err)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState<Partial<TaskFilterValues>>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const { toast } = useToast()
   const fileImportRef = useRef<HTMLInputElement>(null)
 
-  const handleCreateTask = (data: TaskFormValues) => {
+  const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
       data.attachments?.map((att) => ({
         id: att.id,
@@ -67,12 +103,32 @@ const Tarefas = () => {
       titleAlignment: data.titleAlignment,
       descriptionAlignment: data.descriptionAlignment,
     }
+
+    // optimistic
     setTasks((prev) => [newTask, ...prev])
     setIsCreateModalOpen(false)
-    toast({ title: 'Sucesso!', description: 'Tarefa criada com sucesso.' })
+
+    try {
+      const created = await createTask(newTask)
+      if (!created) throw new Error('Failed to persist task')
+      // replace id if backend returned different
+      setTasks((prev) =>
+        prev.map((t) => (t.id === newTask.id ? { ...t, id: created.id } : t)),
+      )
+      toast({ title: 'Sucesso!', description: 'Tarefa criada com sucesso.' })
+    } catch (err) {
+      console.error('Failed to create task', err)
+      setTasks((prev) => prev.filter((t) => t.id !== newTask.id))
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível criar a tarefa.',
+      })
+    }
   }
 
-  const handleUpdateTask = (taskId: string, data: TaskFormValues) => {
+  const handleUpdateTask = async (taskId: string, data: TaskFormValues) => {
+    const previous = tasks.find((t) => t.id === taskId)
     const updatedAttachments =
       data.attachments?.map((att) => ({
         id: att.id,
@@ -82,39 +138,71 @@ const Tarefas = () => {
         type: att.type,
       })) || []
 
+    const updatedTask = {
+      title: data.title,
+      description: data.description || '',
+      priority: data.priority,
+      tags: data.tags || [],
+      due_date: data.due_date,
+      subtasks: (data.subtasks as Subtask[]) || [],
+      attachments: updatedAttachments,
+      backgroundColor: data.backgroundColor,
+      borderStyle: data.borderStyle,
+      titleAlignment: data.titleAlignment,
+      descriptionAlignment: data.descriptionAlignment,
+    }
+
     setTasks((prev) =>
       prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              title: data.title,
-              description: data.description || '',
-              priority: data.priority,
-              tags: data.tags || [],
-              due_date: data.due_date,
-              subtasks: (data.subtasks as Subtask[]) || [],
-              attachments: updatedAttachments,
-              backgroundColor: data.backgroundColor,
-              borderStyle: data.borderStyle,
-              titleAlignment: data.titleAlignment,
-              descriptionAlignment: data.descriptionAlignment,
-            }
-          : task,
+        task.id === taskId ? { ...task, ...updatedTask } : task,
       ),
     )
-    toast({ title: 'Sucesso!', description: 'Tarefa atualizada com sucesso.' })
+
+    try {
+      const ok = await updateTask(taskId, updatedTask)
+      if (!ok) throw new Error('Failed to persist update')
+      toast({
+        title: 'Sucesso!',
+        description: 'Tarefa atualizada com sucesso.',
+      })
+    } catch (err) {
+      console.error('Failed to update task', err)
+      if (previous)
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? previous : t)))
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar a tarefa.',
+      })
+    }
   }
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
+    const previous = tasks
     setTasks((prev) => prev.filter((task) => task.id !== taskId))
-    toast({
-      variant: 'destructive',
-      title: 'Tarefa excluída!',
-      description: 'A tarefa foi removida da sua lista.',
-    })
+    try {
+      const ok = await deleteTask(taskId)
+      if (!ok) throw new Error('Failed to delete')
+      toast({
+        variant: 'destructive',
+        title: 'Tarefa excluída!',
+        description: 'A tarefa foi removida da sua lista.',
+      })
+    } catch (err) {
+      console.error('Failed to delete task', err)
+      setTasks(previous)
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível excluir a tarefa.',
+      })
+    }
   }
 
-  const toggleCompletion = (taskId: string, subtaskIdToToggle?: string) => {
+  const toggleCompletion = async (
+    taskId: string,
+    subtaskIdToToggle?: string,
+  ) => {
     const toggleAndPropagate = (
       subtasks: Subtask[],
       isChecking: boolean,
@@ -164,34 +252,58 @@ const Tarefas = () => {
       })
     }
 
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id !== taskId) return task
+    const previous = tasks
 
-        if (!subtaskIdToToggle) {
-          const newIsCompleted = !task.is_completed
-          return {
-            ...task,
-            is_completed: newIsCompleted,
-            subtasks: toggleAndPropagate(task.subtasks, newIsCompleted),
-          }
-        }
+    const nextTasks = tasks.map((task) => {
+      if (task.id !== taskId) return task
 
-        let tempSubtasks = findAndToggle(task.subtasks)
-        let updatedSubtasks = updateParents(tempSubtasks)
-
-        const allTopLevelSubtasksCompleted = updatedSubtasks.every(
-          (s) => s.is_completed,
-        )
-
+      if (!subtaskIdToToggle) {
+        const newIsCompleted = !task.is_completed
         return {
           ...task,
-          subtasks: updatedSubtasks,
-          is_completed:
-            task.subtasks.length > 0 ? allTopLevelSubtasksCompleted : false,
+          is_completed: newIsCompleted,
+          subtasks: toggleAndPropagate(task.subtasks, newIsCompleted),
         }
-      }),
-    )
+      }
+
+      let tempSubtasks = findAndToggle(task.subtasks)
+      let updatedSubtasks = updateParents(tempSubtasks)
+
+      const allTopLevelSubtasksCompleted = updatedSubtasks.every(
+        (s) => s.is_completed,
+      )
+
+      return {
+        ...task,
+        subtasks: updatedSubtasks,
+        is_completed:
+          task.subtasks.length > 0 ? allTopLevelSubtasksCompleted : false,
+      }
+    })
+
+    // optimistic update
+    setTasks(nextTasks)
+
+    // persist the specific task change
+    const updatedTask = nextTasks.find((t) => t.id === taskId)
+    if (!updatedTask) return
+
+    try {
+      const ok = await updateTask(taskId, {
+        is_completed: updatedTask.is_completed,
+        subtasks: updatedTask.subtasks,
+      })
+      if (!ok) throw new Error('Failed to persist task update')
+    } catch (err) {
+      console.error('Failed to persist task toggle', err)
+      // rollback
+      setTasks(previous)
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status da tarefa.',
+      })
+    }
   }
 
   const handleExport = () => {

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Navigate, Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import NotFound from './NotFound'
 import { Button } from '@/components/ui/button'
+import { getUserById } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PostCard } from '@/components/social/PostCard'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,6 +13,8 @@ import {
   users as mockUsers,
   posts as mockPosts,
   communities as mockCommunities,
+  communityMessages as mockCommunityMessages,
+  conversations as mockConversations,
 } from '@/lib/mock-data'
 import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
@@ -33,11 +37,38 @@ const PerfilUsuario = () => {
       setLoading(true)
       await new Promise((res) => setTimeout(res, 500))
 
-      const profileData = mockUsers.find((u) => u.id === userId)
+      let profileData = mockUsers.find((u) => u.id === userId)
 
       if (!profileData) {
-        setLoading(false)
-        return
+        // try DB
+        try {
+          const dbUser = await getUserById(userId)
+          if (dbUser) profileData = dbUser
+        } catch (err) {
+          console.warn('getUserById failed', err)
+        }
+      }
+
+      if (!profileData) {
+        // try to find author in posts
+        profileData = mockPosts.find((p) => p.author.id === userId)?.author
+
+        // try community messages
+        if (!profileData)
+          profileData = mockCommunityMessages.find(
+            (m) => m.author.id === userId,
+          )?.author
+
+        // try conversations participants
+        if (!profileData)
+          profileData = mockConversations.find(
+            (c) => c.participant?.id === userId,
+          )?.participant
+
+        if (!profileData) {
+          setLoading(false)
+          return
+        }
       }
 
       setProfile(profileData)
@@ -95,7 +126,8 @@ const PerfilUsuario = () => {
   }
 
   if (!profile) {
-    return <Navigate to="/404" replace />
+    // Render NotFound inline to avoid navigating to /404 and producing misleading console messages
+    return <NotFound />
   }
 
   if (userId === currentUser?.id) {

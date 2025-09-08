@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um e-mail válido.' }),
@@ -33,6 +33,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 const Login = () => {
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { login } = useAuth()
   const { toast } = useToast()
   const form = useForm<LoginFormValues>({
@@ -40,18 +41,43 @@ const Login = () => {
     defaultValues: { email: '', password: '' },
   })
 
+  const mountedRef = useRef(true)
+  useEffect(
+    () => () => {
+      mountedRef.current = false
+    },
+    [],
+  )
+
   const onSubmit = async (data: LoginFormValues) => {
+    console.log('[Login] submit', data.email)
+    if (!mountedRef.current) return
     setLoading(true)
+    let timeout = setTimeout(() => {
+      if (mountedRef.current) {
+        console.error('[Login] timeout clearing loading')
+        setLoading(false)
+      }
+    }, 15000)
+
     try {
+      setErrorMessage(null)
       await login(data.email, data.password)
-    } catch (error) {
+      console.log('[Login] login resolved')
+    } catch (error: any) {
+      console.error('[Login] login error', error)
+      const message =
+        error?.message ||
+        'E-mail ou senha inválidos. Por favor, tente novamente.'
+      setErrorMessage(message)
       toast({
         variant: 'destructive',
         title: 'Erro de Login',
-        description: 'E-mail ou senha inválidos. Por favor, tente novamente.',
+        description: message,
       })
     } finally {
-      setLoading(false)
+      clearTimeout(timeout)
+      if (mountedRef.current) setLoading(false)
     }
   }
 
@@ -68,6 +94,11 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded border border-destructive bg-destructive/5 text-destructive">
+              {errorMessage}
+            </div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
