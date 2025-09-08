@@ -98,10 +98,27 @@ export const PostCard = ({ post, onDelete }: PostCardProps) => {
       const ok = await updatePostReactions(post.id, nextReactions)
       if (!ok) throw new Error('Failed to persist reactions')
       post.reactions = nextReactions
+      if (typeof props.onReact === 'function') props.onReact(post.id)
     } catch (err) {
       console.error('Failed to persist reactions', err)
       // rollback UI
       setIsLiked(!newLiked)
+    }
+  }
+
+  const handleReactEmoji = async (emoji: string) => {
+    if (!user) return
+    const nextReactions = { ...(post.reactions || {}) }
+    const current = nextReactions[emoji] || 0
+    nextReactions[emoji] = current + 1
+
+    try {
+      const ok = await updatePostReactions(post.id, nextReactions)
+      if (!ok) throw new Error('Failed to persist reactions')
+      post.reactions = nextReactions
+      if (typeof props.onReact === 'function') props.onReact(post.id)
+    } catch (err) {
+      console.error('Failed to persist reaction', err)
     }
   }
 
