@@ -98,26 +98,38 @@ export const DesabafoCard = ({
     })
   }
 
-  const handleReact = (emoji: string) => {
-    setLocalReactions((prev) => {
-      const newReactions = { ...prev }
-      if (userReaction) {
-        newReactions[userReaction] = (newReactions[userReaction] || 1) - 1
-        if (newReactions[userReaction] === 0) {
-          delete newReactions[userReaction]
-        }
-      }
-      if (userReaction !== emoji) {
-        newReactions[emoji] = (newReactions[emoji] || 0) + 1
-        setUserReaction(emoji)
-      } else {
-        setUserReaction(null)
-      }
-      return newReactions
-    })
+  const handleReact = async (emoji: string) => {
+    if (!user) return
+    const key = `desabafo-react:${desabafo.id}:${emoji}:${user.id}`
+    const already = Boolean(localStorage.getItem(key))
+
+    // optimistic
+    const previous = { ...localReactions }
+    const next = { ...localReactions }
+    const current = next[emoji] || 0
+    next[emoji] = already ? Math.max(0, current - 1) : current + 1
+    // if user had a different reaction, remove it
+    if (userReaction && userReaction !== emoji) {
+      next[userReaction] = Math.max(0, (next[userReaction] || 1) - 1)
+    }
+
+    setLocalReactions(next)
+    setUserReaction(already ? null : emoji)
+
+    try {
+      const ok = await updateDesabafoReactions(desabafo.id, next)
+      if (!ok) throw new Error('Failed to persist reaction')
+      if (already) localStorage.removeItem(key)
+      else localStorage.setItem(key, '1')
+    } catch (err) {
+      console.error('Failed to persist desabafo reaction', err)
+      // rollback
+      setLocalReactions(previous)
+      setUserReaction(previous ? Object.keys(previous).find((k) => (previous as any)[k] > 0) || null : null)
+    }
   }
 
-  const handleCommentSubmit = (e: React.FormEvent) => {
+  const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newComment.trim()) return
     const comment: DesabafoComment = {
@@ -126,8 +138,20 @@ export const DesabafoCard = ({
       created_date: new Date(),
       reactions: {},
     }
+
+    // optimistic
     setComments((prev) => [...prev, comment])
     setNewComment('')
+
+    try {
+      const ok = await addCommentToDesabafo(desabafo.id, comment)
+      if (!ok) throw new Error('Failed to persist comment')
+    } catch (err) {
+      console.error('Failed to persist desabafo comment', err)
+      // rollback
+      setComments((prev) => prev.filter((c) => c.id !== comment.id))
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível publicar o comentário.' })
+    }
   }
 
   return (
