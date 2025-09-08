@@ -147,6 +147,22 @@ async function main() {
       ON CONFLICT (id) DO NOTHING;
     `)
 
+    // Insert sample conversations and messages
+    await client.query(`
+      INSERT INTO conversations (id, participant_id, last_message_preview, last_message_date, unread_count)
+      VALUES
+      ('conv-1', 'user-2', 'Oi Bruno! Obrigada! Fico feliz...', NOW() - INTERVAL '2 days', 0)
+      ON CONFLICT (id) DO NOTHING;
+    `)
+
+    await client.query(`
+      INSERT INTO messages (id, conversation_id, sender_id, recipient_id, content, created_date, read)
+      VALUES
+      ('msg-1', 'conv-1', 'user-2', 'user-1', 'Oi Ana, tudo bem? Vi seu novo portfólio, ficou incrível!', NOW() - INTERVAL '2 days', true),
+      ('msg-2', 'conv-1', 'user-1', 'user-2', 'Oi Bruno! Obrigada! Fico feliz que tenha gostado 😊', NOW() - INTERVAL '2 days' + INTERVAL '5 minutes', true)
+      ON CONFLICT (id) DO NOTHING;
+    `)
+
     console.log('Database schema created and seeded successfully.')
   } catch (err) {
     console.error('Error seeding database:', err)
