@@ -56,6 +56,7 @@ const App = () => (
               <Route path="/desabafos" element={<Desabafos />} />
             </Route>
           </Route>
+          <Route path="/404" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
