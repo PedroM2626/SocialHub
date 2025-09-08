@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { desabafos as mockDesabafos } from '@/lib/mock-data'
 import { DesabafoCard } from '@/components/desabafos/DesabafoCard'
+import { getDesabafos, createDesabafo, updateDesabafo, deleteDesabafo } from '@/lib/db'
 import {
   Popover,
   PopoverContent,
