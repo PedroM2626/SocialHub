@@ -77,7 +77,7 @@ const Tarefas = () => {
   const { toast } = useToast()
   const fileImportRef = useRef<HTMLInputElement>(null)
 
-  const handleCreateTask = (data: TaskFormValues) => {
+  const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
       data.attachments?.map((att) => ({
         id: att.id,
@@ -103,12 +103,26 @@ const Tarefas = () => {
       titleAlignment: data.titleAlignment,
       descriptionAlignment: data.descriptionAlignment,
     }
+
+    // optimistic
     setTasks((prev) => [newTask, ...prev])
     setIsCreateModalOpen(false)
-    toast({ title: 'Sucesso!', description: 'Tarefa criada com sucesso.' })
+
+    try {
+      const created = await createTask(newTask)
+      if (!created) throw new Error('Failed to persist task')
+      // replace id if backend returned different
+      setTasks((prev) => prev.map((t) => (t.id === newTask.id ? { ...t, id: created.id } : t)))
+      toast({ title: 'Sucesso!', description: 'Tarefa criada com sucesso.' })
+    } catch (err) {
+      console.error('Failed to create task', err)
+      setTasks((prev) => prev.filter((t) => t.id !== newTask.id))
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível criar a tarefa.' })
+    }
   }
 
-  const handleUpdateTask = (taskId: string, data: TaskFormValues) => {
+  const handleUpdateTask = async (taskId: string, data: TaskFormValues) => {
+    const previous = tasks.find((t) => t.id === taskId)
     const updatedAttachments =
       data.attachments?.map((att) => ({
         id: att.id,
@@ -118,36 +132,45 @@ const Tarefas = () => {
         type: att.type,
       })) || []
 
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              title: data.title,
-              description: data.description || '',
-              priority: data.priority,
-              tags: data.tags || [],
-              due_date: data.due_date,
-              subtasks: (data.subtasks as Subtask[]) || [],
-              attachments: updatedAttachments,
-              backgroundColor: data.backgroundColor,
-              borderStyle: data.borderStyle,
-              titleAlignment: data.titleAlignment,
-              descriptionAlignment: data.descriptionAlignment,
-            }
-          : task,
-      ),
-    )
-    toast({ title: 'Sucesso!', description: 'Tarefa atualizada com sucesso.' })
+    const updatedTask = {
+      title: data.title,
+      description: data.description || '',
+      priority: data.priority,
+      tags: data.tags || [],
+      due_date: data.due_date,
+      subtasks: (data.subtasks as Subtask[]) || [],
+      attachments: updatedAttachments,
+      backgroundColor: data.backgroundColor,
+      borderStyle: data.borderStyle,
+      titleAlignment: data.titleAlignment,
+      descriptionAlignment: data.descriptionAlignment,
+    }
+
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task)))
+
+    try {
+      const ok = await updateTask(taskId, updatedTask)
+      if (!ok) throw new Error('Failed to persist update')
+      toast({ title: 'Sucesso!', description: 'Tarefa atualizada com sucesso.' })
+    } catch (err) {
+      console.error('Failed to update task', err)
+      if (previous) setTasks((prev) => prev.map((t) => (t.id === taskId ? previous : t)))
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar a tarefa.' })
+    }
   }
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
+    const previous = tasks
     setTasks((prev) => prev.filter((task) => task.id !== taskId))
-    toast({
-      variant: 'destructive',
-      title: 'Tarefa excluída!',
-      description: 'A tarefa foi removida da sua lista.',
-    })
+    try {
+      const ok = await deleteTask(taskId)
+      if (!ok) throw new Error('Failed to delete')
+      toast({ variant: 'destructive', title: 'Tarefa excluída!', description: 'A tarefa foi removida da sua lista.' })
+    } catch (err) {
+      console.error('Failed to delete task', err)
+      setTasks(previous)
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir a tarefa.' })
+    }
   }
 
   const toggleCompletion = (taskId: string, subtaskIdToToggle?: string) => {
