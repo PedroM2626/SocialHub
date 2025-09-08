@@ -108,7 +108,9 @@ const PerfilUsuario = () => {
   }
 
   if (!profile) {
-    return <Navigate to="/404" replace />
+    // Render NotFound inline to avoid navigating to /404 and producing misleading console messages
+    const NotFound = (await import('./NotFound')).default
+    return <NotFound />
   }
 
   if (userId === currentUser?.id) {
