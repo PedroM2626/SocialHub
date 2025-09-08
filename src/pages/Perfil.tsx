@@ -65,8 +65,8 @@ const Perfil = () => {
     }
   }
 
-  const handleSaveChanges = () => {
-    updateUser({
+  const handleSaveChanges = async () => {
+    const updated = await updateUser(currentUser.id, {
       name,
       bio,
       website,
@@ -74,7 +74,11 @@ const Perfil = () => {
       profile_image: profileImage || currentUser.profile_image,
       cover_image: coverImage || currentUser.cover_image,
     })
-    toast({ title: 'Sucesso!', description: 'Perfil atualizado.' })
+    if (updated) {
+      toast({ title: 'Sucesso!', description: 'Perfil atualizado.' })
+    } else {
+      toast({ title: 'Erro', description: 'Não foi possível atualizar o perfil.' })
+    }
   }
 
   const handleDeletePost = (postId: string) => {
