@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { Post, Comment } from '@/lib/types'
 import { useAuth } from '@/contexts/AuthContext'
+import { addCommentToPost, updatePostReactions, deletePost } from '@/lib/db'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -163,7 +164,10 @@ export const PostCard = ({ post, onDelete }: PostCardProps) => {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete?.(post.id)}>
+                <AlertDialogAction onClick={async () => {
+                    const ok = await deletePost(post.id)
+                    if (ok) onDelete?.(post.id)
+                  }}>
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
