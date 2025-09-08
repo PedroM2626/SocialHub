@@ -125,17 +125,28 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
 
   const handleReactEmoji = async (emoji: string) => {
     if (!user) return
+    const key = `post-react:${post.id}:${emoji}:${user.id}`
+    const alreadyReacted = Boolean(localStorage.getItem(key))
+
+    // optimistic
     const nextReactions = { ...(post.reactions || {}) }
     const current = nextReactions[emoji] || 0
-    nextReactions[emoji] = current + 1
+    nextReactions[emoji] = alreadyReacted ? Math.max(0, current - 1) : current + 1
+    const previousReactions = { ...(post.reactions || {}) }
+    post.reactions = nextReactions
 
     try {
       const ok = await updatePostReactions(post.id, nextReactions)
       if (!ok) throw new Error('Failed to persist reactions')
-      post.reactions = nextReactions
+
+      if (alreadyReacted) localStorage.removeItem(key)
+      else localStorage.setItem(key, '1')
+
       if (typeof onReact === 'function') onReact(post.id)
     } catch (err) {
       console.error('Failed to persist reaction', err)
+      // rollback
+      post.reactions = previousReactions
     }
   }
 
