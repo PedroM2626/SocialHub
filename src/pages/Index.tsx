@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useState, useEffect } from 'react'
 import { Search, Sparkles, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { PostCard } from '@/components/social/PostCard'
