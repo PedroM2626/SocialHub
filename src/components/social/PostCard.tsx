@@ -84,25 +84,42 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
     }
   }
 
+  useEffect(() => {
+    if (!user) return
+    try {
+      const key = `post-like:${post.id}:${user.id}`
+      const stored = localStorage.getItem(key)
+      setIsLiked(Boolean(stored))
+    } catch (err) {
+      // ignore
+    }
+  }, [user, post.id])
+
   const handleToggleLike = async () => {
     if (!user) return
-    const newLiked = !isLiked
+    const key = `post-like:${post.id}:${user.id}`
+    const currentlyLiked = Boolean(localStorage.getItem(key))
+    const newLiked = !currentlyLiked
+
+    // optimistic UI
     setIsLiked(newLiked)
 
     const nextReactions = { ...(post.reactions || {}) }
-    const key = '👍'
-    const current = nextReactions[key] || 0
-    nextReactions[key] = newLiked ? current + 1 : Math.max(0, current - 1)
+    const likeKey = '👍'
+    const current = nextReactions[likeKey] || 0
+    nextReactions[likeKey] = newLiked ? current + 1 : Math.max(0, current - 1)
 
     try {
       const ok = await updatePostReactions(post.id, nextReactions)
       if (!ok) throw new Error('Failed to persist reactions')
       post.reactions = nextReactions
+      if (newLiked) localStorage.setItem(key, '1')
+      else localStorage.removeItem(key)
       if (typeof onReact === 'function') onReact(post.id)
     } catch (err) {
       console.error('Failed to persist reactions', err)
       // rollback UI
-      setIsLiked(!newLiked)
+      setIsLiked(currentlyLiked)
     }
   }
 
