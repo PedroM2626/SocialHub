@@ -87,6 +87,11 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 p-3 rounded border border-destructive bg-destructive/5 text-destructive">
+              {errorMessage}
+            </div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
