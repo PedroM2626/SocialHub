@@ -110,7 +110,6 @@ const PerfilUsuario = () => {
 
   if (!profile) {
     // Render NotFound inline to avoid navigating to /404 and producing misleading console messages
-    const NotFound = (await import('./NotFound')).default
     return <NotFound />
   }
 
