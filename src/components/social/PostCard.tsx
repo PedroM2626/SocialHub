@@ -298,25 +298,43 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
                 </Button>
               </div>
             </form>
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex items-start space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={comment.author.profile_image} />
-                  <AvatarFallback>
-                    {comment.author.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-accent p-3 rounded-lg text-sm">
-                  <Link
-                    to={`/perfil/${comment.author.id}`}
-                    className="font-bold hover:underline"
-                  >
-                    {comment.author.name}
-                  </Link>
-                  <p>{comment.content}</p>
+            {comments.map((comment) => {
+              const author = comment.author || null
+              const authorName = author?.name ?? 'Usuário'
+              const authorId = author?.id ?? null
+
+              return (
+                <div key={comment.id} className="flex items-start space-x-3">
+                  {authorId ? (
+                    <Link to={`/perfil/${authorId}`} className="block h-8 w-8">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={author?.profile_image} />
+                        <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    </Link>
+                  ) : (
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={author?.profile_image} />
+                      <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  )}
+
+                  <div className="bg-accent p-3 rounded-lg text-sm">
+                    {authorId ? (
+                      <Link
+                        to={`/perfil/${authorId}`}
+                        className="font-bold hover:underline"
+                      >
+                        {authorName}
+                      </Link>
+                    ) : (
+                      <span className="font-bold">{authorName}</span>
+                    )}
+                    <p>{comment.content}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </CardFooter>
