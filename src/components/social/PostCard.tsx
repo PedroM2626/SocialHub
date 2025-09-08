@@ -266,7 +266,7 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
                 isLiked && 'fill-red-500 text-red-500',
               )}
             />
-            Curtir
+            Curtir {post.likes_count ? `(${post.likes_count})` : ''}
           </Button>
           <Button
             variant="ghost"
