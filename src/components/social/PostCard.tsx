@@ -143,13 +143,15 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
     <Card className="glass-card animate-fade-in-up">
       <CardHeader className="flex flex-row items-start p-4">
         <div className="flex items-center gap-4">
-          <Avatar>
-            <AvatarImage
-              src={post.author.profile_image}
-              alt={post.author.name}
-            />
-            <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <Link to={`/perfil/${post.author.id}`} className="block">
+            <Avatar>
+              <AvatarImage
+                src={post.author.profile_image}
+                alt={post.author.name}
+              />
+              <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div>
             <Link
               to={`/perfil/${post.author.id}`}
