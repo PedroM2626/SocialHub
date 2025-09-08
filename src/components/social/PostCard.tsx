@@ -46,6 +46,7 @@ import {
 interface PostCardProps {
   post: Post
   onDelete?: (postId: string) => void
+  onReact?: (postId: string) => void
 }
 
 const reactions = ['❤️', '👍', '😂', '😢', '😠']
