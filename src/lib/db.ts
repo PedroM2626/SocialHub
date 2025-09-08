@@ -268,6 +268,66 @@ export async function addCommentToDesabafo(desabafoId: string, comment: any): Pr
   }
 }
 
+// Tasks persistence
+export async function getTasks(): Promise<any[]> {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('tasks').select('*').order('id', { ascending: false }),
+    )
+    if (error) throw error
+    return (data || [])
+  } catch (err) {
+    console.warn('getTasks failed', err)
+    return []
+  }
+}
+
+export async function createTask(payload: any) {
+  try {
+    const record = {
+      id: payload.id,
+      title: payload.title,
+      description: payload.description || null,
+      is_completed: payload.is_completed || false,
+      priority: payload.priority || null,
+      is_public: payload.is_public !== undefined ? payload.is_public : true,
+      tags: payload.tags || [],
+      due_date: payload.due_date || null,
+      subtasks: payload.subtasks || [],
+      backgroundColor: payload.backgroundColor || null,
+      borderStyle: payload.borderStyle || null,
+    }
+    const { data, error } = await withTimeout(supabase.from('tasks').insert(record).select().single())
+    if (error) throw error
+    return data
+  } catch (err) {
+    console.warn('createTask failed', err)
+    return null
+  }
+}
+
+export async function updateTask(id: string, payload: any) {
+  try {
+    const { error } = await withTimeout(supabase.from('tasks').update(payload).eq('id', id))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('updateTask failed', err)
+    return false
+  }
+}
+
+export async function deleteTask(id: string) {
+  try {
+    const { error } = await withTimeout(supabase.from('tasks').delete().eq('id', id))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('deleteTask failed', err)
+    return false
+  }
+}
+
 export async function deletePost(postId: string): Promise<boolean> {
   try {
     const { error } = await withTimeout(supabase.from('posts').delete().eq('id', postId))
