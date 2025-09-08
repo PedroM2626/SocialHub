@@ -229,7 +229,7 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
         </div>
         <Separator className="my-2 bg-border/50" />
         <div className="grid grid-cols-3 gap-1 w-full">
-          <Button variant="ghost" onClick={() => setIsLiked(!isLiked)}>
+          <Button variant="ghost" onClick={handleToggleLike}>
             <Heart
               className={cn(
                 'mr-2 h-4 w-4',
@@ -260,6 +260,7 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
                     variant="ghost"
                     size="icon"
                     className="rounded-full text-xl"
+                    onClick={() => handleReactEmoji(emoji)}
                   >
                     {emoji}
                   </Button>
