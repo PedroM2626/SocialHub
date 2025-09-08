@@ -259,8 +259,16 @@ export async function updateDesabafo(id: string, payload: { content?: string; ha
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('updateDesabafo failed', err)
-    return false
+    console.warn('updateDesabafo failed, applying local fallback', err)
+    try {
+      const current = readLocalDesabafos()
+      const next = current.map((d) => (d.id === id ? { ...d, ...payload } : d))
+      writeLocalDesabafos(next)
+      return true
+    } catch (e) {
+      console.error('local updateDesabafo failed', e)
+      return false
+    }
   }
 }
 
@@ -270,8 +278,16 @@ export async function deleteDesabafo(id: string) {
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('deleteDesabafo failed', err)
-    return false
+    console.warn('deleteDesabafo failed, applying local fallback', err)
+    try {
+      const current = readLocalDesabafos()
+      const next = current.filter((d) => d.id !== id)
+      writeLocalDesabafos(next)
+      return true
+    } catch (e) {
+      console.error('local deleteDesabafo failed', e)
+      return false
+    }
   }
 }
 
@@ -281,8 +297,16 @@ export async function updateDesabafoReactions(id: string, reactions: Record<stri
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('updateDesabafoReactions failed', err)
-    return false
+    console.warn('updateDesabafoReactions failed, applying local fallback', err)
+    try {
+      const current = readLocalDesabafos()
+      const next = current.map((d) => (d.id === id ? { ...d, reactions } : d))
+      writeLocalDesabafos(next)
+      return true
+    } catch (e) {
+      console.error('local updateDesabafoReactions failed', e)
+      return false
+    }
   }
 }
 
@@ -298,8 +322,18 @@ export async function addCommentToDesabafo(desabafoId: string, comment: any): Pr
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('addCommentToDesabafo failed', err)
-    return false
+    console.warn('addCommentToDesabafo failed, applying local fallback', err)
+    try {
+      const current = readLocalDesabafos()
+      const next = current.map((d) =>
+        d.id === desabafoId ? { ...d, comments: [...(d.comments || []), comment] } : d,
+      )
+      writeLocalDesabafos(next)
+      return true
+    } catch (e) {
+      console.error('local addCommentToDesabafo failed', e)
+      return false
+    }
   }
 }
 
