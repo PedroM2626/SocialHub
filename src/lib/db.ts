@@ -138,3 +138,47 @@ export async function updateUser(id: string, payload: Partial<User>): Promise<Us
     return null
   }
 }
+
+export async function addCommentToPost(postId: string, comment: any): Promise<boolean> {
+  try {
+    // Fetch existing comments
+    const { data: post, error: fetchErr } = await withTimeout(
+      supabase.from('posts').select('comments').eq('id', postId).single(),
+    )
+    if (fetchErr) throw fetchErr
+    const existingComments = post?.comments || []
+    const newComments = [...existingComments, comment]
+    const { error } = await withTimeout(
+      supabase.from('posts').update({ comments: newComments, comments_count: newComments.length }).eq('id', postId),
+    )
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('addCommentToPost failed', err)
+    return false
+  }
+}
+
+export async function updatePostReactions(postId: string, reactions: Record<string, number>): Promise<boolean> {
+  try {
+    const { error } = await withTimeout(
+      supabase.from('posts').update({ reactions }).eq('id', postId),
+    )
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('updatePostReactions failed', err)
+    return false
+  }
+}
+
+export async function deletePost(postId: string): Promise<boolean> {
+  try {
+    const { error } = await withTimeout(supabase.from('posts').delete().eq('id', postId))
+    if (error) throw error
+    return true
+  } catch (err) {
+    console.warn('deletePost failed', err)
+    return false
+  }
+}
