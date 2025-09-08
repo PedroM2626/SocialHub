@@ -30,7 +30,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { Post, Comment } from '@/lib/types'
 import { useAuth } from '@/contexts/AuthContext'
-import { addCommentToPost, updatePostReactions, deletePost } from '@/lib/db'
+import { addCommentToPost, updatePostReactions, updatePostLikes, deletePost } from '@/lib/db'
 import {
   AlertDialog,
   AlertDialogAction,
