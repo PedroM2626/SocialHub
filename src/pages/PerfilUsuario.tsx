@@ -40,6 +40,16 @@ const PerfilUsuario = () => {
       let profileData = mockUsers.find((u) => u.id === userId)
 
       if (!profileData) {
+        // try DB
+        try {
+          const dbUser = await getUserById(userId)
+          if (dbUser) profileData = dbUser
+        } catch (err) {
+          console.warn('getUserById failed', err)
+        }
+      }
+
+      if (!profileData) {
         // try to find author in posts
         profileData = mockPosts.find((p) => p.author.id === userId)?.author
 
