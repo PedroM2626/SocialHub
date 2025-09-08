@@ -36,6 +36,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const Tarefas = () => {
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
+
+  // load remote tasks if available
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const remote = await getTasks()
+        if (mounted && remote.length > 0) {
+          const mapped = remote.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description || '',
+            is_completed: r.is_completed || false,
+            priority: (r.priority as any) || 'medium',
+            is_public: r.is_public !== undefined ? r.is_public : true,
+            tags: r.tags || [],
+            due_date: r.due_date || null,
+            subtasks: r.subtasks || [],
+            attachments: r.attachments || [],
+            backgroundColor: r.backgroundColor || null,
+            borderStyle: r.borderStyle || null,
+            titleAlignment: r.titleAlignment || 'left',
+            descriptionAlignment: r.descriptionAlignment || 'left',
+          }))
+          setTasks(mapped)
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to load tasks from DB, falling back to mock', err)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState<Partial<TaskFilterValues>>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
