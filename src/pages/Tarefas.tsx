@@ -530,7 +530,7 @@ const Tarefas = () => {
                 <input
                   type="color"
                   value={highlightColor}
-                  onChange={(e) => setHighlightColor(e.target.value)}
+                  onChange={(e) => { setHighlightColor(e.target.value); try { localStorage.setItem('local:highlightColor', e.target.value) } catch {} }}
                   className="w-8 h-8 p-0 rounded"
                 />
                 <Button size="sm" variant="outline" onClick={() => setIsCreateEventOpen(true)}>
