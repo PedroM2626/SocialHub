@@ -56,7 +56,7 @@ const GerenciarTags = () => {
 
   return (
     <div className="container mx-auto max-w-3xl py-8 px-4">
-      <h1 className="text-3xl font-bold font-display mb-8">Gerenciar Tags</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold font-display mb-8">Gerenciar Tags</h1>
       <Card className="glass-card mb-8">
         <CardHeader>
           <CardTitle>Nova Tag</CardTitle>
