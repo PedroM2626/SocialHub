@@ -19,7 +19,7 @@ export default function Layout() {
       <div className="lg:pl-64 flex flex-col flex-1 min-h-screen">
         <MobileHeader />
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-20 sm:pt-16 lg:pt-0">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 lg:pt-0">
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>
