@@ -31,7 +31,11 @@ export const AppSidebar = () => {
   const { logout } = useAuth()
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:border-r lg:border-border/50 lg:bg-background z-50">
+    <aside
+      role="navigation"
+      aria-label="Main navigation"
+      className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:border-r lg:border-border/50 lg:bg-background z-50"
+    >
       <div className="flex flex-col flex-grow p-4 overflow-y-auto">
         <div className="flex items-center flex-shrink-0 px-4 mb-8">
           <Sparkles className="h-8 w-auto text-primary animate-pulse-sm" />
@@ -39,7 +43,8 @@ export const AppSidebar = () => {
             SocialHub
           </h1>
         </div>
-        <nav className="flex-1 space-y-2">
+
+        <nav className="flex-1 space-y-2" aria-label="Primary">
           {navigationItems.map((item) => (
             <NavLink
               key={item.name}
@@ -55,10 +60,11 @@ export const AppSidebar = () => {
               }
             >
               <item.icon className="mr-3 h-5 w-5" aria-hidden="true" />
-              <span>{item.name}</span>
+              <span className="truncate">{item.name}</span>
             </NavLink>
           ))}
         </nav>
+
         <div className="mt-auto pt-4">
           <Separator className="mb-4" />
           <Button
