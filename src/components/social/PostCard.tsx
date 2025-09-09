@@ -270,7 +270,7 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
           <span>{comments.length} comentários</span>
         </div>
         <Separator className="my-2 bg-border/50" />
-        <div className="grid grid-cols-3 gap-1 w-full">
+        <div className="flex flex-col sm:flex-row sm:justify-between w-full gap-2">
           <Button variant="ghost" onClick={handleToggleLike}>
             <Heart
               className={cn(
