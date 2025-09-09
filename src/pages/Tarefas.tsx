@@ -479,10 +479,12 @@ const Tarefas = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 animate-fade-in-down">
         <h1 className="text-2xl sm:text-3xl font-bold font-display">Minhas Tarefas</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => fileImportRef.current?.click()}
+            className="w-full sm:w-auto"
           >
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
@@ -493,10 +495,10 @@ const Tarefas = () => {
             accept=".json"
             onChange={handleImport}
           />
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" size="sm" onClick={handleExport} className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Button onClick={() => setIsCreateModalOpen(true)} size="sm" className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" /> Criar Tarefa
           </Button>
         </div>
