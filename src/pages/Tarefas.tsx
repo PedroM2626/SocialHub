@@ -337,6 +337,35 @@ const Tarefas = () => {
     }
   }
 
+  const tasksDueOnSelectedDate = useMemo(() => {
+    if (!selectedDate) return []
+    return tasks.filter((t) => {
+      if (!t.due_date) return false
+      try {
+        const d = new Date(t.due_date)
+        return d.toDateString() === selectedDate.toDateString()
+      } catch {
+        return false
+      }
+    })
+  }, [tasks, selectedDate])
+
+  const handleCreateEvent = () => {
+    if (!eventTitle || !selectedDate) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Título e data são obrigatórios.' })
+      return
+    }
+    const newEvent = { id: `evt-${Date.now()}`, title: eventTitle, date: selectedDate.toISOString() }
+    const next = [newEvent, ...events]
+    setEvents(next)
+    try {
+      localStorage.setItem('local:events', JSON.stringify(next))
+    } catch {}
+    setEventTitle('')
+    setIsCreateEventOpen(false)
+    toast({ title: 'Evento criado', description: 'Seu evento foi agendado.' })
+  }
+
   const filteredTasks = useMemo(
     () =>
       tasks
