@@ -202,7 +202,7 @@ const Tarefas = () => {
       if (!ok) throw new Error('Failed to delete')
       toast({
         variant: 'destructive',
-        title: 'Tarefa excluída!',
+        title: 'Tarefa exclu��da!',
         description: 'A tarefa foi removida da sua lista.',
       })
     } catch (err) {
@@ -505,22 +505,95 @@ const Tarefas = () => {
           />
         </DialogContent>
       </Dialog>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTasks.map((task, index) => (
-          <div
-            key={task.id}
-            className="animate-fade-in-up"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <TaskCard
-              task={task}
-              onUpdate={handleUpdateTask}
-              onToggleCompletion={toggleCompletion}
-              onDelete={handleDeleteTask}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1">
+          <div className="glass-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Calendário</h3>
+              <Button size="sm" variant="outline" onClick={() => setIsCreateEventOpen(true)}>
+                Agendar
+              </Button>
+            </div>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => setSelectedDate(d as Date | undefined)}
             />
+            <div className="mt-4">
+              <h4 className="text-sm font-medium">Tarefas no dia</h4>
+              {tasksDueOnSelectedDate.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma tarefa com prazo neste dia.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {tasksDueOnSelectedDate.map((t) => (
+                    <li key={t.id} className="p-2 rounded border bg-accent/10">
+                      <div className="text-sm font-medium">{t.title}</div>
+                      <div className="text-xs text-muted-foreground">{t.description}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="mt-4">
+              <h4 className="text-sm font-medium">Eventos</h4>
+              {events.filter(e => {
+                if (!selectedDate) return false
+                return new Date(e.date).toDateString() === selectedDate.toDateString()
+              }).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum evento neste dia.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {events
+                    .filter(e => new Date(e.date).toDateString() === selectedDate?.toDateString())
+                    .map(e => (
+                      <li key={e.id} className="p-2 rounded border bg-accent/10">
+                        <div className="text-sm font-medium">{e.title}</div>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
           </div>
-        ))}
+        </div>
+
+        <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTasks.map((task, index) => (
+              <div
+                key={task.id}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <TaskCard
+                  task={task}
+                  onUpdate={handleUpdateTask}
+                  onToggleCompletion={toggleCompletion}
+                  onDelete={handleDeleteTask}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      <Dialog open={isCreateEventOpen} onOpenChange={setIsCreateEventOpen}>
+        <DialogContent className="glass-card max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agendar Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Título</Label>
+            <UiInput value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} />
+            <Label>Data</Label>
+            <Calendar selected={selectedDate} onSelect={(d) => setSelectedDate(d as Date | undefined)} />
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={() => setIsCreateEventOpen(false)}>Cancelar</Button>
+              <Button onClick={handleCreateEvent}>Salvar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
