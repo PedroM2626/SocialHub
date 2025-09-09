@@ -98,6 +98,9 @@ const Tarefas = () => {
   const [editingEvent, setEditingEvent] = useState<{ id: string; title: string; date: string } | null>(null)
   const [isEditEventOpen, setIsEditEventOpen] = useState(false)
 
+  // calendar marking color (user can choose)
+  const [highlightColor, setHighlightColor] = useState('#f97316')
+
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
       data.attachments?.map((att) => ({
