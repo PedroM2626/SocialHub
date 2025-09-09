@@ -478,7 +478,7 @@ const Tarefas = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 animate-fade-in-down">
-        <h1 className="text-3xl font-bold font-display">Minhas Tarefas</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">Minhas Tarefas</h1>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
