@@ -203,16 +203,14 @@ const Tarefas = () => {
     taskId: string,
     subtaskIdToToggle?: string,
   ) => {
-    const toggleAndPropagate = (
+    const toggleChildren = (
       subtasks: Subtask[],
       isChecking: boolean,
     ): Subtask[] => {
       return subtasks.map((sub) => ({
         ...sub,
         is_completed: isChecking,
-        subtasks: sub.subtasks
-          ? toggleAndPropagate(sub.subtasks, isChecking)
-          : [],
+        subtasks: sub.subtasks ? toggleChildren(sub.subtasks, isChecking) : [],
       }))
     }
 
@@ -223,30 +221,11 @@ const Tarefas = () => {
           return {
             ...sub,
             is_completed: newIsCompleted,
-            subtasks: sub.subtasks
-              ? toggleAndPropagate(sub.subtasks, newIsCompleted)
-              : [],
+            subtasks: sub.subtasks ? toggleChildren(sub.subtasks, newIsCompleted) : [],
           }
         }
         if (sub.subtasks) {
           return { ...sub, subtasks: findAndToggle(sub.subtasks) }
-        }
-        return sub
-      })
-    }
-
-    const updateParents = (subtasks: Subtask[]): Subtask[] => {
-      return subtasks.map((sub) => {
-        if (sub.subtasks && sub.subtasks.length > 0) {
-          const updatedChildren = updateParents(sub.subtasks)
-          const allChildrenCompleted = updatedChildren.every(
-            (child) => child.is_completed,
-          )
-          return {
-            ...sub,
-            subtasks: updatedChildren,
-            is_completed: allChildrenCompleted,
-          }
         }
         return sub
       })
@@ -258,33 +237,28 @@ const Tarefas = () => {
       if (task.id !== taskId) return task
 
       if (!subtaskIdToToggle) {
+        // Allow completing a task regardless of subtasks state
         const newIsCompleted = !task.is_completed
         return {
           ...task,
           is_completed: newIsCompleted,
-          subtasks: toggleAndPropagate(task.subtasks, newIsCompleted),
+          // Do not force subtasks when toggling the main task
+          subtasks: task.subtasks,
         }
       }
 
-      let tempSubtasks = findAndToggle(task.subtasks)
-      let updatedSubtasks = updateParents(tempSubtasks)
+      // Toggle a specific subtask, but do not auto-change the parent completion
+      const updatedSubtasks = findAndToggle(task.subtasks)
 
-      const allTopLevelSubtasksCompleted = updatedSubtasks.every(
-        (s) => s.is_completed,
-      )
-
+      // Keep current task completion as-is when toggling subtasks
       return {
         ...task,
         subtasks: updatedSubtasks,
-        is_completed:
-          task.subtasks.length > 0 ? allTopLevelSubtasksCompleted : false,
       }
     })
 
-    // optimistic update
     setTasks(nextTasks)
 
-    // persist the specific task change
     const updatedTask = nextTasks.find((t) => t.id === taskId)
     if (!updatedTask) return
 
@@ -296,7 +270,6 @@ const Tarefas = () => {
       if (!ok) throw new Error('Failed to persist task update')
     } catch (err) {
       console.error('Failed to persist task toggle', err)
-      // rollback
       setTasks(previous)
       toast({
         variant: 'destructive',
