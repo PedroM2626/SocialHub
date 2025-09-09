@@ -331,15 +331,21 @@ const Tarefas = () => {
   }
 
   const handleExport = () => {
-    const dataStr = JSON.stringify(tasks, null, 2)
-    const dataUri =
-      'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
-    const exportFileDefaultName = 'socialhub_tasks.json'
+    const payload = {
+      tasks,
+      events,
+      dateColors,
+      highlightColor,
+      notificationRangeDays,
+    }
+    const dataStr = JSON.stringify(payload, null, 2)
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
+    const exportFileDefaultName = 'socialhub_tasks_export.json'
     const linkElement = document.createElement('a')
     linkElement.setAttribute('href', dataUri)
     linkElement.setAttribute('download', exportFileDefaultName)
     linkElement.click()
-    toast({ title: 'Sucesso!', description: 'Tarefas exportadas.' })
+    toast({ title: 'Sucesso!', description: 'Tarefas e configurações exportadas.' })
   }
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
