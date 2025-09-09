@@ -542,19 +542,30 @@ const Tarefas = () => {
               mode="single"
               selected={selectedDate}
               onSelect={(d) => setSelectedDate(d as Date | undefined)}
-              modifiers={{
-                hasItem: Array.from(
-                  new Set(
-                    [
-                      ...tasks
-                        .filter((t) => t.due_date)
-                        .map((t) => new Date(t.due_date as any).setHours(0, 0, 0, 0)),
-                      ...events.map((e) => new Date(e.date).setHours(0, 0, 0, 0)),
-                    ].map((ms) => new Date(ms)),
-                  ),
-                ),
+              components={{
+                DayButton: (props) => {
+                  const day = props.day
+                  const key = day ? new Date(day).toDateString() : ''
+                  const color = key && dateColors[key] ? dateColors[key] : null
+                  const hasItem = !!(
+                    tasks.some(t => t.due_date && new Date(t.due_date as any).toDateString() === key) ||
+                    events.some(e => new Date(e.date).toDateString() === key)
+                  )
+
+                  const style: React.CSSProperties = {}
+                  if (color) {
+                    style.backgroundColor = color
+                    style.color = 'white'
+                    style.borderRadius = '0.375rem'
+                  } else if (hasItem) {
+                    style.backgroundColor = highlightColor
+                    style.color = 'white'
+                    style.borderRadius = '0.375rem'
+                  }
+
+                  return <DayButton {...props} style={{ ...(props.style || {}), ...style }} />
+                }
               }}
-              modifiersClassNames={{ hasItem: 'has-calendar-item' }}
               style={{ ['--calendar-mark-color' as any]: highlightColor }}
             />
             <div className="mt-4">
