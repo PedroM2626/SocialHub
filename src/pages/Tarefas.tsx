@@ -355,15 +355,30 @@ const Tarefas = () => {
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        const text = e.target?.result
-        const importedTasks = JSON.parse(text as string)
-        if (Array.isArray(importedTasks)) {
-          setTasks((prev) => [...prev, ...importedTasks])
+        const text = e.target?.result as string
+        const imported = JSON.parse(text)
+
+        if (Array.isArray(imported)) {
+          setTasks(imported)
           toast({ title: 'Sucesso!', description: 'Tarefas importadas.' })
+        } else if (imported && typeof imported === 'object') {
+          if (imported.tasks) setTasks(imported.tasks)
+          if (imported.events) setEvents(imported.events)
+          if (imported.dateColors) setDateColors(imported.dateColors)
+          if (imported.highlightColor) setHighlightColor(imported.highlightColor)
+          if (imported.notificationRangeDays) setNotificationRangeDays(imported.notificationRangeDays)
+
+          try { localStorage.setItem('local:events', JSON.stringify(imported.events || [])) } catch {}
+          try { localStorage.setItem('local:dateColors', JSON.stringify(imported.dateColors || {})) } catch {}
+          try { localStorage.setItem('local:highlightColor', imported.highlightColor || '') } catch {}
+          try { localStorage.setItem('local:notificationRangeDays', String(imported.notificationRangeDays || notificationRangeDays)) } catch {}
+
+          toast({ title: 'Sucesso!', description: 'Dados importados.' })
         } else {
-          throw new Error('Formato de arquivo inválido.')
+          throw new Error('Formato inválido')
         }
       } catch (error) {
+        console.error('Import failed', error)
         toast({
           variant: 'destructive',
           title: 'Erro de Importação',
