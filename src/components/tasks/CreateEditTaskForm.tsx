@@ -42,10 +42,11 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import { Separator } from '../ui/separator'
 import { RichTextInput } from '../ui/RichTextInput'
 import { Input } from '../ui/input'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group'
 import { TagInput } from './TagInput'
 import { tags as mockTags } from '@/lib/mock-data'
+import { Checkbox } from '@/components/ui/checkbox'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -64,6 +65,7 @@ const subtaskSchema: z.ZodType<Omit<Subtask, 'id'> & { id?: string }> = z.lazy(
       id: z.string().optional(),
       title: z.string().min(1, 'Subtarefa não pode ser vazia.'),
       is_completed: z.boolean(),
+      is_optional: z.boolean().optional(),
       subtasks: z.array(subtaskSchema).optional(),
     }),
 )
@@ -159,14 +161,35 @@ const SubtaskFields = ({
                 />
               )}
             />
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              onClick={() => remove(index)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Controller
+                control={control}
+                name={`${fieldName}.${index}.is_optional`}
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={!!field.value}
+                      onCheckedChange={(v) => field.onChange(!!v)}
+                      id={`${fieldName}.${index}.is_optional`}
+                    />
+                    <label
+                      htmlFor={`${fieldName}.${index}.is_optional`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Opcional
+                    </label>
+                  </div>
+                )}
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                onClick={() => remove(index)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <SubtaskFields
             control={control}
@@ -183,6 +206,7 @@ const SubtaskFields = ({
           append({
             title: '',
             is_completed: false,
+            is_optional: false,
             id: `new-${Date.now()}`,
             subtasks: [],
           })
@@ -215,6 +239,24 @@ export const CreateEditTaskForm = ({
       descriptionAlignment: task?.descriptionAlignment || 'left',
     },
   })
+
+  useEffect(() => {
+    if (task) {
+      form.reset({
+        title: task.title || '',
+        description: task.description || '',
+        due_date: task.due_date ? new Date(task.due_date) : undefined,
+        priority: task.priority || 'medium',
+        tags: task.tags || [],
+        subtasks: task.subtasks || [],
+        attachments: task.attachments || [],
+        backgroundColor: task.backgroundColor || 'hsl(var(--card))',
+        borderStyle: task.borderStyle || 'solid',
+        titleAlignment: task.titleAlignment || 'left',
+        descriptionAlignment: task.descriptionAlignment || 'left',
+      })
+    }
+  }, [task])
 
   const {
     fields: attachmentFields,

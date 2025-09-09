@@ -59,6 +59,7 @@ export interface Subtask {
   id: string
   title: string
   is_completed: boolean
+  is_optional?: boolean
   subtasks?: Subtask[]
 }
 

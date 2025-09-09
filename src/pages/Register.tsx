@@ -52,7 +52,12 @@ const Register = () => {
   })
 
   const mountedRef = useRef(true)
-  useEffect(() => () => { mountedRef.current = false }, [])
+  useEffect(
+    () => () => {
+      mountedRef.current = false
+    },
+    [],
+  )
 
   const onSubmit = async (data: RegisterFormValues) => {
     console.log('[Register] submit', data.email)
@@ -89,7 +94,9 @@ const Register = () => {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center gap-2 mb-2">
             <Sparkles className="h-8 w-8 text-primary" />
-            <CardTitle className="text-3xl font-display">Criar Conta</CardTitle>
+            <CardTitle className="text-2xl sm:text-3xl font-display">
+              Criar Conta
+            </CardTitle>
           </div>
           <CardDescription>
             Junte-se à comunidade SocialHub hoje mesmo.

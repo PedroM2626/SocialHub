@@ -89,7 +89,9 @@ const Comunidades = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 animate-fade-in-down">
-        <h1 className="text-3xl font-bold font-display">Comunidades</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">
+          Comunidades
+        </h1>
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Criar Comunidade
         </Button>
@@ -111,7 +113,7 @@ const Comunidades = () => {
                 <Filter className="mr-2 h-4 w-4" /> Filtros
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-96" align="end">
+            <PopoverContent className="w-full max-w-xs sm:w-96" align="end">
               <CommunityFilters
                 onApply={setFilters}
                 onClear={() => setFilters({})}

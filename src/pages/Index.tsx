@@ -115,7 +115,7 @@ const Index = () => {
 
   return (
     <div className="container mx-auto max-w-3xl py-8 px-4">
-      <header className="sticky top-0 lg:top-auto lg:relative z-30 bg-background/80 backdrop-blur-lg -mx-4 px-4 py-4 mb-6 border-b border-border/50 animate-fade-in-down">
+      <header className="sticky top-0 lg:top-auto lg:relative z-30 bg-background/80 backdrop-blur-lg px-0 sm:px-4 py-4 mb-6 border-b border-border/50 animate-fade-in-down">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary animate-pulse-sm" />
@@ -137,7 +137,7 @@ const Index = () => {
                   <Filter className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-96" align="end">
+              <PopoverContent className="w-full max-w-xs sm:w-96" align="end">
                 <PostFilters
                   onApply={setFilters}
                   onClear={() => setFilters({})}

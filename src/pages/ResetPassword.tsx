@@ -77,7 +77,7 @@ const ResetPassword = () => {
         <CardHeader className="text-center">
           <div className="flex justify-center items-center gap-2 mb-2">
             <Sparkles className="h-8 w-8 text-primary" />
-            <CardTitle className="text-3xl font-display">
+            <CardTitle className="text-2xl sm:text-3xl font-display">
               Redefinir Senha
             </CardTitle>
           </div>

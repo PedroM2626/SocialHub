@@ -262,7 +262,6 @@ export const TaskCard = ({
               checked={task.is_completed}
               id={`task-${task.id}`}
               onCheckedChange={() => onToggleCompletion(task.id)}
-              disabled={task.subtasks.length > 0}
             />
             <label
               htmlFor={`task-${task.id}`}

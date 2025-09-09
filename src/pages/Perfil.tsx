@@ -167,7 +167,7 @@ const Perfil = () => {
             />
           </div>
           <div className="flex-1 text-center sm:text-left py-2">
-            <h1 className="text-3xl font-bold font-display">
+            <h1 className="text-2xl sm:text-3xl font-bold font-display">
               {currentUser.name}
             </h1>
             <p className="text-muted-foreground">{currentUser.email}</p>
@@ -262,7 +262,7 @@ const Perfil = () => {
                     <Filter className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-96" align="end">
+                <PopoverContent className="w-full max-w-xs sm:w-96" align="end">
                   <PostFilters
                     onApply={setFilters}
                     onClear={() => setFilters({})}

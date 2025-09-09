@@ -228,7 +228,9 @@ const Desabafos = () => {
   return (
     <div className="container mx-auto max-w-3xl py-8 px-4">
       <div className="text-center mb-8 animate-fade-in-down">
-        <h1 className="text-3xl font-bold font-display">Mural de Desabafos</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">
+          Mural de Desabafos
+        </h1>
         <p className="text-muted-foreground mt-2">
           Um espaço seguro para compartilhar seus pensamentos anonimamente.
         </p>
@@ -252,7 +254,7 @@ const Desabafos = () => {
               <Filter className="mr-2 h-4 w-4" /> Filtros
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-96" align="end">
+          <PopoverContent className="w-full max-w-xs sm:w-96" align="end">
             <DesabafoFilters
               onApply={setFilters}
               onClear={() => setFilters({})}
