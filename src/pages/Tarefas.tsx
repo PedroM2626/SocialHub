@@ -517,14 +517,37 @@ const Tarefas = () => {
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">Calendário</h3>
-              <Button size="sm" variant="outline" onClick={() => setIsCreateEventOpen(true)}>
-                Agendar
-              </Button>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">Cor</label>
+                <input
+                  type="color"
+                  value={highlightColor}
+                  onChange={(e) => setHighlightColor(e.target.value)}
+                  className="w-8 h-8 p-0 rounded"
+                />
+                <Button size="sm" variant="outline" onClick={() => setIsCreateEventOpen(true)}>
+                  Agendar
+                </Button>
+              </div>
             </div>
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={(d) => setSelectedDate(d as Date | undefined)}
+              modifiers={{
+                hasItem: Array.from(
+                  new Set(
+                    [
+                      ...tasks
+                        .filter((t) => t.due_date)
+                        .map((t) => new Date(t.due_date as any).setHours(0, 0, 0, 0)),
+                      ...events.map((e) => new Date(e.date).setHours(0, 0, 0, 0)),
+                    ].map((ms) => new Date(ms)),
+                  ),
+                ),
+              }}
+              modifiersClassNames={{ hasItem: 'has-calendar-item' }}
+              style={{ ['--calendar-mark-color' as any]: highlightColor }}
             />
             <div className="mt-4">
               <h4 className="text-sm font-medium">Tarefas no dia</h4>
