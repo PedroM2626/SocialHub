@@ -39,7 +39,11 @@ const DialogContent = React.forwardRef<
     for (const child of arr) {
       if (React.isValidElement(child)) {
         const type = (child.type as any) || {}
-        if (type === DialogPrimitive.Title || type?.displayName === DialogPrimitive.Title.displayName || type?.displayName === 'DialogTitle') {
+        if (
+          type === DialogPrimitive.Title ||
+          type?.displayName === DialogPrimitive.Title.displayName ||
+          type?.displayName === 'DialogTitle'
+        ) {
           return true
         }
         if (child.props && child.props.children) {
@@ -64,7 +68,9 @@ const DialogContent = React.forwardRef<
         {...props}
       >
         {!hasTitle && (
-          <DialogPrimitive.Title className="sr-only">Dialog</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">
+            Dialog
+          </DialogPrimitive.Title>
         )}
         {children}
         <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">

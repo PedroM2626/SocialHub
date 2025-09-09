@@ -34,7 +34,9 @@ export const MobileHeader = () => {
     <header className="lg:hidden sticky top-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-lg px-3 sm:px-6">
       <div className="flex items-center">
         <Sparkles className="h-6 w-auto text-primary" />
-        <span className="ml-2 text-lg sm:text-xl font-bold font-display">SocialHub</span>
+        <span className="ml-2 text-lg sm:text-xl font-bold font-display">
+          SocialHub
+        </span>
       </div>
       <Sheet>
         <SheetTrigger asChild>
@@ -53,7 +55,10 @@ export const MobileHeader = () => {
               SocialHub
             </h1>
           </div>
-          <nav className="flex flex-col space-y-2 flex-1" aria-label="Mobile primary">
+          <nav
+            className="flex flex-col space-y-2 flex-1"
+            aria-label="Mobile primary"
+          >
             {navigationItems.map((item) => (
               <NavLink
                 key={item.name}

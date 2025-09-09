@@ -271,7 +271,11 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
         </div>
         <Separator className="my-2 bg-border/50" />
         <div className="flex flex-col sm:flex-row sm:justify-between w-full gap-2">
-          <Button variant="ghost" onClick={handleToggleLike} className="w-full sm:w-auto justify-center">
+          <Button
+            variant="ghost"
+            onClick={handleToggleLike}
+            className="w-full sm:w-auto justify-center"
+          >
             <Heart
               className={cn(
                 'mr-2 h-4 w-4',
@@ -290,7 +294,10 @@ export const PostCard = ({ post, onDelete, onReact }: PostCardProps) => {
           </Button>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="w-full sm:w-auto justify-center">
+              <Button
+                variant="ghost"
+                className="w-full sm:w-auto justify-center"
+              >
                 <Smile className="mr-2 h-4 w-4" />
                 Reagir
               </Button>

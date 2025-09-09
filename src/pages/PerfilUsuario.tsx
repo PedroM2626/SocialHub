@@ -151,7 +151,9 @@ const PerfilUsuario = () => {
             <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 text-center sm:text-left py-2">
-            <h1 className="text-2xl sm:text-3xl font-bold font-display">{profile.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold font-display">
+              {profile.name}
+            </h1>
             {profile.website && (
               <a
                 href={profile.website}

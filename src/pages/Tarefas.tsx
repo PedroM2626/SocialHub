@@ -15,7 +15,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
 import { DayButton } from 'react-day-picker'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input as UiInput } from '@/components/ui/input'
 import { tasks as mockTasks } from '@/lib/mock-data'
@@ -80,7 +85,9 @@ const Tarefas = () => {
 
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [events, setEvents] = useState<{ id: string; title: string; date: string; color?: string }[]>(() => {
+  const [events, setEvents] = useState<
+    { id: string; title: string; date: string; color?: string }[]
+  >(() => {
     try {
       const raw = localStorage.getItem('local:events')
       return raw ? JSON.parse(raw) : []
@@ -90,42 +97,73 @@ const Tarefas = () => {
   })
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
-  const [createEventColor, setCreateEventColor] = useState<string | undefined>(undefined)
+  const [createEventColor, setCreateEventColor] = useState<string | undefined>(
+    undefined,
+  )
 
   // edit task modal state (for calendar-day edits)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false)
 
   // edit event state
-  const [editingEvent, setEditingEvent] = useState<{ id: string; title: string; date: string; color?: string } | null>(null)
+  const [editingEvent, setEditingEvent] = useState<{
+    id: string
+    title: string
+    date: string
+    color?: string
+  } | null>(null)
   const [isEditEventOpen, setIsEditEventOpen] = useState(false)
 
   // calendar marking color (user can choose) persisted
   const [highlightColor, setHighlightColor] = useState(() => {
-    try { return localStorage.getItem('local:highlightColor') || '#f97316' } catch { return '#f97316' }
+    try {
+      return localStorage.getItem('local:highlightColor') || '#f97316'
+    } catch {
+      return '#f97316'
+    }
   })
 
   // per-date colors persisted
   const [dateColors, setDateColors] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('local:dateColors') || '{}') } catch { return {} }
+    try {
+      return JSON.parse(localStorage.getItem('local:dateColors') || '{}')
+    } catch {
+      return {}
+    }
   })
 
   // notification range (days) persisted
   const [notificationRangeDays, setNotificationRangeDays] = useState(() => {
-    try { return parseInt(localStorage.getItem('local:notificationRangeDays') || '7', 10) } catch { return 7 }
+    try {
+      return parseInt(
+        localStorage.getItem('local:notificationRangeDays') || '7',
+        10,
+      )
+    } catch {
+      return 7
+    }
   })
 
   // persist events/dateColors/highlightColor/notificationRange
   useEffect(() => {
-    try { localStorage.setItem('local:events', JSON.stringify(events)) } catch {}
+    try {
+      localStorage.setItem('local:events', JSON.stringify(events))
+    } catch {}
   }, [events])
 
   useEffect(() => {
-    try { localStorage.setItem('local:dateColors', JSON.stringify(dateColors)) } catch {}
+    try {
+      localStorage.setItem('local:dateColors', JSON.stringify(dateColors))
+    } catch {}
   }, [dateColors])
 
   useEffect(() => {
-    try { localStorage.setItem('local:notificationRangeDays', String(notificationRangeDays)) } catch {}
+    try {
+      localStorage.setItem(
+        'local:notificationRangeDays',
+        String(notificationRangeDays),
+      )
+    } catch {}
   }, [notificationRangeDays])
 
   const handleCreateTask = async (data: TaskFormValues) => {
@@ -272,7 +310,9 @@ const Tarefas = () => {
           return {
             ...sub,
             is_completed: newIsCompleted,
-            subtasks: sub.subtasks ? toggleChildren(sub.subtasks, newIsCompleted) : [],
+            subtasks: sub.subtasks
+              ? toggleChildren(sub.subtasks, newIsCompleted)
+              : [],
           }
         }
         if (sub.subtasks) {
@@ -339,13 +379,17 @@ const Tarefas = () => {
       notificationRangeDays,
     }
     const dataStr = JSON.stringify(payload, null, 2)
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
+    const dataUri =
+      'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
     const exportFileDefaultName = 'socialhub_tasks_export.json'
     const linkElement = document.createElement('a')
     linkElement.setAttribute('href', dataUri)
     linkElement.setAttribute('download', exportFileDefaultName)
     linkElement.click()
-    toast({ title: 'Sucesso!', description: 'Tarefas e configurações exportadas.' })
+    toast({
+      title: 'Sucesso!',
+      description: 'Tarefas e configurações exportadas.',
+    })
   }
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -365,13 +409,35 @@ const Tarefas = () => {
           if (imported.tasks) setTasks(imported.tasks)
           if (imported.events) setEvents(imported.events)
           if (imported.dateColors) setDateColors(imported.dateColors)
-          if (imported.highlightColor) setHighlightColor(imported.highlightColor)
-          if (imported.notificationRangeDays) setNotificationRangeDays(imported.notificationRangeDays)
+          if (imported.highlightColor)
+            setHighlightColor(imported.highlightColor)
+          if (imported.notificationRangeDays)
+            setNotificationRangeDays(imported.notificationRangeDays)
 
-          try { localStorage.setItem('local:events', JSON.stringify(imported.events || [])) } catch {}
-          try { localStorage.setItem('local:dateColors', JSON.stringify(imported.dateColors || {})) } catch {}
-          try { localStorage.setItem('local:highlightColor', imported.highlightColor || '') } catch {}
-          try { localStorage.setItem('local:notificationRangeDays', String(imported.notificationRangeDays || notificationRangeDays)) } catch {}
+          try {
+            localStorage.setItem(
+              'local:events',
+              JSON.stringify(imported.events || []),
+            )
+          } catch {}
+          try {
+            localStorage.setItem(
+              'local:dateColors',
+              JSON.stringify(imported.dateColors || {}),
+            )
+          } catch {}
+          try {
+            localStorage.setItem(
+              'local:highlightColor',
+              imported.highlightColor || '',
+            )
+          } catch {}
+          try {
+            localStorage.setItem(
+              'local:notificationRangeDays',
+              String(imported.notificationRangeDays || notificationRangeDays),
+            )
+          } catch {}
 
           toast({ title: 'Sucesso!', description: 'Dados importados.' })
         } else {
@@ -407,11 +473,23 @@ const Tarefas = () => {
 
   const handleCreateEvent = () => {
     if (!eventTitle || !selectedDate) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Título e data são obrigatórios.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Título e data são obrigatórios.',
+      })
       return
     }
-    const defaultColor = createEventColor || dateColors[selectedDate.toDateString()] || highlightColor
-    const newEvent = { id: `evt-${Date.now()}`, title: eventTitle, date: selectedDate.toISOString(), color: defaultColor }
+    const defaultColor =
+      createEventColor ||
+      dateColors[selectedDate.toDateString()] ||
+      highlightColor
+    const newEvent = {
+      id: `evt-${Date.now()}`,
+      title: eventTitle,
+      date: selectedDate.toISOString(),
+      color: defaultColor,
+    }
     const next = [newEvent, ...events]
     setEvents(next)
     try {
@@ -478,7 +556,9 @@ const Tarefas = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 animate-fade-in-down">
-        <h1 className="text-2xl sm:text-3xl font-bold font-display">Minhas Tarefas</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">
+          Minhas Tarefas
+        </h1>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
@@ -495,10 +575,19 @@ const Tarefas = () => {
             accept=".json"
             onChange={handleImport}
           />
-          <Button variant="outline" size="sm" onClick={handleExport} className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            className="w-full sm:w-auto"
+          >
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
-          <Button onClick={() => setIsCreateModalOpen(true)} size="sm" className="w-full sm:w-auto">
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            size="sm"
+            className="w-full sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" /> Criar Tarefa
           </Button>
         </div>
@@ -570,19 +659,40 @@ const Tarefas = () => {
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">Calendário</h3>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground hidden sm:inline">Cor</span>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  Cor
+                </span>
                 <input
                   aria-label="Selecionar cor do calendário"
                   type="color"
                   value={highlightColor}
-                  onChange={(e) => { setHighlightColor(e.target.value); try { localStorage.setItem('local:highlightColor', e.target.value) } catch {} }}
+                  onChange={(e) => {
+                    setHighlightColor(e.target.value)
+                    try {
+                      localStorage.setItem(
+                        'local:highlightColor',
+                        e.target.value,
+                      )
+                    } catch {}
+                  }}
                   className="w-8 h-8 p-0 rounded"
                 />
-                <span className="text-xs text-muted-foreground hidden sm:inline">Avisos</span>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  Avisos
+                </span>
                 <select
                   aria-label="Alcance de avisos"
                   value={notificationRangeDays}
-                  onChange={(e) => { const v = parseInt(e.target.value, 10); setNotificationRangeDays(v); try { localStorage.setItem('local:notificationRangeDays', String(v)) } catch {} }}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10)
+                    setNotificationRangeDays(v)
+                    try {
+                      localStorage.setItem(
+                        'local:notificationRangeDays',
+                        String(v),
+                      )
+                    } catch {}
+                  }}
                   className="rounded border px-2 py-1 bg-background text-sm w-full sm:w-auto"
                 >
                   <option value="90">3 meses</option>
@@ -592,7 +702,15 @@ const Tarefas = () => {
                   <option value="5">5 dias</option>
                   <option value="3">3 dias</option>
                 </select>
-                <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => { setCreateEventColor(undefined); setIsCreateEventOpen(true); }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    setCreateEventColor(undefined)
+                    setIsCreateEventOpen(true)
+                  }}
+                >
                   Agendar
                 </Button>
               </div>
@@ -605,10 +723,20 @@ const Tarefas = () => {
                 DayButton: (props) => {
                   const day = props.day
                   const key = day ? new Date(day).toDateString() : ''
-                  const eventForDay = events.find(e => new Date(e.date).toDateString() === key)
-                  const color = (eventForDay && eventForDay.color) || (key && dateColors[key] ? dateColors[key] : null)
-                  const tasksCount = tasks.filter(t => t.due_date && new Date(t.due_date as any).toDateString() === key).length
-                  const eventsCount = events.filter(e => new Date(e.date).toDateString() === key).length
+                  const eventForDay = events.find(
+                    (e) => new Date(e.date).toDateString() === key,
+                  )
+                  const color =
+                    (eventForDay && eventForDay.color) ||
+                    (key && dateColors[key] ? dateColors[key] : null)
+                  const tasksCount = tasks.filter(
+                    (t) =>
+                      t.due_date &&
+                      new Date(t.due_date as any).toDateString() === key,
+                  ).length
+                  const eventsCount = events.filter(
+                    (e) => new Date(e.date).toDateString() === key,
+                  ).length
                   const count = tasksCount + eventsCount
                   const hasItem = count > 0
 
@@ -623,7 +751,9 @@ const Tarefas = () => {
                     style.borderRadius = '0.375rem'
                   }
 
-                  const isSelected = !!(props.selected || props.modifiers?.selected)
+                  const isSelected = !!(
+                    props.selected || props.modifiers?.selected
+                  )
                   if (isSelected) {
                     style.boxShadow = '0 0 0 2px rgba(255,255,255,0.06) inset'
                     style.outline = '2px solid rgba(255,255,255,0.06)'
@@ -631,7 +761,10 @@ const Tarefas = () => {
 
                   return (
                     <div className="relative inline-flex">
-                      <DayButton {...props} style={{ ...(props.style || {}), ...style }} />
+                      <DayButton
+                        {...props}
+                        style={{ ...(props.style || {}), ...style }}
+                      />
                       {count > 0 && (
                         <span className="absolute -top-2 -right-2 text-[10px] leading-none px-1.5 rounded-full bg-primary text-primary-foreground">
                           {count}
@@ -639,7 +772,7 @@ const Tarefas = () => {
                       )}
                     </div>
                   )
-                }
+                },
               }}
               style={{ ['--calendar-mark-color' as any]: highlightColor }}
             />
@@ -650,52 +783,98 @@ const Tarefas = () => {
                 <label className="text-sm">Cor deste dia</label>
                 <input
                   type="color"
-                  value={dateColors[selectedDate?.toDateString() || ''] || highlightColor}
+                  value={
+                    dateColors[selectedDate?.toDateString() || ''] ||
+                    highlightColor
+                  }
                   onChange={(e) => {
                     if (!selectedDate) return
                     const key = selectedDate.toDateString()
                     const next = { ...dateColors, [key]: e.target.value }
                     setDateColors(next)
-                    try { localStorage.setItem('local:dateColors', JSON.stringify(next)) } catch {}
+                    try {
+                      localStorage.setItem(
+                        'local:dateColors',
+                        JSON.stringify(next),
+                      )
+                    } catch {}
                   }}
                 />
-                <Button size="sm" variant="ghost" onClick={() => {
-                  if (!selectedDate) return
-                  const key = selectedDate.toDateString()
-                  const next = { ...dateColors }
-                  delete next[key]
-                  setDateColors(next)
-                  try { localStorage.setItem('local:dateColors', JSON.stringify(next)) } catch {}
-                }}>Reset</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    if (!selectedDate) return
+                    const key = selectedDate.toDateString()
+                    const next = { ...dateColors }
+                    delete next[key]
+                    setDateColors(next)
+                    try {
+                      localStorage.setItem(
+                        'local:dateColors',
+                        JSON.stringify(next),
+                      )
+                    } catch {}
+                  }}
+                >
+                  Reset
+                </Button>
               </div>
 
               {tasksDueOnSelectedDate.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma tarefa com prazo neste dia.</p>
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma tarefa com prazo neste dia.
+                </p>
               ) : (
                 <ul className="mt-2 space-y-2">
                   {tasksDueOnSelectedDate.map((t) => {
-                    const daysUntil = t.due_date ? Math.ceil((new Date(t.due_date).getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24)) : Infinity
-                    const within = daysUntil <= notificationRangeDays && daysUntil >= 0
+                    const daysUntil = t.due_date
+                      ? Math.ceil(
+                          (new Date(t.due_date).getTime() -
+                            new Date().setHours(0, 0, 0, 0)) /
+                            (1000 * 60 * 60 * 24),
+                        )
+                      : Infinity
+                    const within =
+                      daysUntil <= notificationRangeDays && daysUntil >= 0
                     return (
-                    <li key={t.id} className="p-2 rounded border bg-accent/10 flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium">{t.title}</div>
-                          {within && (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">Vence em {daysUntil}d</span>
-                          )}
+                      <li
+                        key={t.id}
+                        className="p-2 rounded border bg-accent/10 flex items-start justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium">{t.title}</div>
+                            {within && (
+                              <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
+                                Vence em {daysUntil}d
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t.description}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">{t.description}</div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button size="sm" variant="ghost" onClick={() => { setEditingTask(t); setIsEditTaskOpen(true) }}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDeleteTask(t.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </li>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingTask(t)
+                              setIsEditTaskOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteTask(t.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </li>
                     )
                   })}
                 </ul>
@@ -704,41 +883,82 @@ const Tarefas = () => {
 
             <div className="mt-4">
               <h4 className="text-sm font-medium">Eventos</h4>
-              {events.filter(e => {
+              {events.filter((e) => {
                 if (!selectedDate) return false
-                return new Date(e.date).toDateString() === selectedDate.toDateString()
+                return (
+                  new Date(e.date).toDateString() ===
+                  selectedDate.toDateString()
+                )
               }).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum evento neste dia.</p>
+                <p className="text-sm text-muted-foreground">
+                  Nenhum evento neste dia.
+                </p>
               ) : (
                 <ul className="mt-2 space-y-2">
                   {events
-                    .filter(e => new Date(e.date).toDateString() === selectedDate?.toDateString())
-                    .map(e => {
-                      const daysUntil = Math.ceil((new Date(e.date).getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24))
-                      const within = daysUntil <= notificationRangeDays && daysUntil >= 0
+                    .filter(
+                      (e) =>
+                        new Date(e.date).toDateString() ===
+                        selectedDate?.toDateString(),
+                    )
+                    .map((e) => {
+                      const daysUntil = Math.ceil(
+                        (new Date(e.date).getTime() -
+                          new Date().setHours(0, 0, 0, 0)) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                      const within =
+                        daysUntil <= notificationRangeDays && daysUntil >= 0
                       return (
-                      <li key={e.id} className="p-2 rounded border bg-accent/10 flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm font-medium">{e.title}</div>
-                            {within && <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">Vence em {daysUntil}d</span>}
+                        <li
+                          key={e.id}
+                          className="p-2 rounded border bg-accent/10 flex items-start justify-between"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-medium">
+                                {e.title}
+                              </div>
+                              {within && (
+                                <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
+                                  Vence em {daysUntil}d
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button size="sm" variant="ghost" onClick={() => { setEditingEvent(e); setIsEditEventOpen(true) }}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => {
-                            const prev = events
-                            const next = events.filter(ev => ev.id !== e.id)
-                            setEvents(next)
-                            try { localStorage.setItem('local:events', JSON.stringify(next)) } catch {}
-                            // no backend persistence required
-                          }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </li>
+                          <div className="flex items-center gap-2 ml-4">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingEvent(e)
+                                setIsEditEventOpen(true)
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                const prev = events
+                                const next = events.filter(
+                                  (ev) => ev.id !== e.id,
+                                )
+                                setEvents(next)
+                                try {
+                                  localStorage.setItem(
+                                    'local:events',
+                                    JSON.stringify(next),
+                                  )
+                                } catch {}
+                                // no backend persistence required
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </li>
                       )
                     })}
                 </ul>
@@ -754,36 +974,92 @@ const Tarefas = () => {
               {(() => {
                 const upcoming = [
                   ...tasks
-                    .filter(t => t.due_date)
-                    .map(t => ({ id: t.id, type: 'task', title: t.title, date: new Date(t.due_date as any) })),
-                  ...events.map(e => ({ id: e.id, type: 'event', title: e.title, date: new Date(e.date), color: e.color })),
+                    .filter((t) => t.due_date)
+                    .map((t) => ({
+                      id: t.id,
+                      type: 'task',
+                      title: t.title,
+                      date: new Date(t.due_date as any),
+                    })),
+                  ...events.map((e) => ({
+                    id: e.id,
+                    type: 'event',
+                    title: e.title,
+                    date: new Date(e.date),
+                    color: e.color,
+                  })),
                 ]
-                  .filter(item => {
-                    const daysUntil = Math.ceil((item.date.getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24))
+                  .filter((item) => {
+                    const daysUntil = Math.ceil(
+                      (item.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                        (1000 * 60 * 60 * 24),
+                    )
                     return daysUntil <= notificationRangeDays && daysUntil >= 0
                   })
-                  .sort((a,b) => +a.date - +b.date)
+                  .sort((a, b) => +a.date - +b.date)
 
-                if (upcoming.length === 0) return <p className="text-sm text-muted-foreground">Nenhum aviso no alcance selecionado.</p>
+                if (upcoming.length === 0)
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum aviso no alcance selecionado.
+                    </p>
+                  )
 
                 return (
                   <ul className="space-y-2">
-                    {upcoming.map(u => {
-                      const daysUntil = Math.ceil((u.date.getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24))
+                    {upcoming.map((u) => {
+                      const daysUntil = Math.ceil(
+                        (u.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                          (1000 * 60 * 60 * 24),
+                      )
                       return (
-                        <li key={`${u.type}-${u.id}`} className="flex items-center justify-between p-2 rounded border bg-accent/10">
+                        <li
+                          key={`${u.type}-${u.id}`}
+                          className="flex items-center justify-between p-2 rounded border bg-accent/10"
+                        >
                           <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: (u as any).color || highlightColor }} />
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  (u as any).color || highlightColor,
+                              }}
+                            />
                             <div>
-                              <div className="text-sm font-medium">{u.title}</div>
-                              <div className="text-xs text-muted-foreground">{u.date.toLocaleDateString()} • Vence em {Math.ceil((u.date.getTime() - new Date().setHours(0,0,0,0))/(1000*60*60*24))}d</div>
+                              <div className="text-sm font-medium">
+                                {u.title}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {u.date.toLocaleDateString()} • Vence em{' '}
+                                {Math.ceil(
+                                  (u.date.getTime() -
+                                    new Date().setHours(0, 0, 0, 0)) /
+                                    (1000 * 60 * 60 * 24),
+                                )}
+                                d
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => {
-                              if ((u as any).type === 'task') { const t = tasks.find(tt => tt.id === u.id); if (t) { setEditingTask(t); setIsEditTaskOpen(true) } }
-                              else { const ev = events.find(xx => xx.id === u.id); if (ev) { setEditingEvent(ev); setIsEditEventOpen(true) } }
-                            }}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if ((u as any).type === 'task') {
+                                  const t = tasks.find((tt) => tt.id === u.id)
+                                  if (t) {
+                                    setEditingTask(t)
+                                    setIsEditTaskOpen(true)
+                                  }
+                                } else {
+                                  const ev = events.find((xx) => xx.id === u.id)
+                                  if (ev) {
+                                    setEditingEvent(ev)
+                                    setIsEditEventOpen(true)
+                                  }
+                                }
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                           </div>
@@ -821,13 +1097,32 @@ const Tarefas = () => {
           </DialogHeader>
           <div className="space-y-3">
             <Label>Título</Label>
-            <UiInput value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} />
+            <UiInput
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
+            />
             <Label>Data</Label>
-            <Calendar selected={selectedDate} onSelect={(d) => setSelectedDate(d as Date | undefined)} />
+            <Calendar
+              selected={selectedDate}
+              onSelect={(d) => setSelectedDate(d as Date | undefined)}
+            />
             <Label>Cor (opcional)</Label>
-            <input type="color" value={createEventColor || dateColors[selectedDate?.toDateString() || ''] || highlightColor} onChange={(e) => setCreateEventColor(e.target.value)} />
+            <input
+              type="color"
+              value={
+                createEventColor ||
+                dateColors[selectedDate?.toDateString() || ''] ||
+                highlightColor
+              }
+              onChange={(e) => setCreateEventColor(e.target.value)}
+            />
             <div className="flex justify-end">
-              <Button variant="ghost" onClick={() => setIsCreateEventOpen(false)}>Cancelar</Button>
+              <Button
+                variant="ghost"
+                onClick={() => setIsCreateEventOpen(false)}
+              >
+                Cancelar
+              </Button>
               <Button onClick={handleCreateEvent}>Salvar</Button>
             </div>
           </div>
@@ -866,27 +1161,75 @@ const Tarefas = () => {
           {editingEvent && (
             <div className="space-y-3">
               <Label>Título</Label>
-              <UiInput value={editingEvent.title} onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })} />
+              <UiInput
+                value={editingEvent.title}
+                onChange={(e) =>
+                  setEditingEvent({ ...editingEvent, title: e.target.value })
+                }
+              />
               <Label>Data</Label>
-              <Calendar selected={new Date(editingEvent.date)} onSelect={(d) => setEditingEvent({ ...editingEvent, date: (d as Date).toISOString() })} />
+              <Calendar
+                selected={new Date(editingEvent.date)}
+                onSelect={(d) =>
+                  setEditingEvent({
+                    ...editingEvent,
+                    date: (d as Date).toISOString(),
+                  })
+                }
+              />
               <Label>Cor (opcional)</Label>
-              <input type="color" value={editingEvent.color || dateColors[new Date(editingEvent.date).toDateString()] || highlightColor} onChange={(e) => setEditingEvent({ ...editingEvent, color: e.target.value })} />
+              <input
+                type="color"
+                value={
+                  editingEvent.color ||
+                  dateColors[new Date(editingEvent.date).toDateString()] ||
+                  highlightColor
+                }
+                onChange={(e) =>
+                  setEditingEvent({ ...editingEvent, color: e.target.value })
+                }
+              />
               <div className="flex justify-end gap-2">
-                <Button variant="destructive" onClick={() => {
-                  const next = events.filter(ev => ev.id !== editingEvent.id)
-                  setEvents(next)
-                  try { localStorage.setItem('local:events', JSON.stringify(next)) } catch {}
-                  setIsEditEventOpen(false)
-                  setEditingEvent(null)
-                }}>Excluir</Button>
-                <Button variant="ghost" onClick={() => { setIsEditEventOpen(false); setEditingEvent(null) }}>Cancelar</Button>
-                <Button onClick={() => {
-                  const next = events.map(ev => (ev.id === editingEvent.id ? editingEvent : ev))
-                  setEvents(next)
-                  try { localStorage.setItem('local:events', JSON.stringify(next)) } catch {}
-                  setIsEditEventOpen(false)
-                  setEditingEvent(null)
-                }}>Salvar</Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    const next = events.filter(
+                      (ev) => ev.id !== editingEvent.id,
+                    )
+                    setEvents(next)
+                    try {
+                      localStorage.setItem('local:events', JSON.stringify(next))
+                    } catch {}
+                    setIsEditEventOpen(false)
+                    setEditingEvent(null)
+                  }}
+                >
+                  Excluir
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEditEventOpen(false)
+                    setEditingEvent(null)
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    const next = events.map((ev) =>
+                      ev.id === editingEvent.id ? editingEvent : ev,
+                    )
+                    setEvents(next)
+                    try {
+                      localStorage.setItem('local:events', JSON.stringify(next))
+                    } catch {}
+                    setIsEditEventOpen(false)
+                    setEditingEvent(null)
+                  }}
+                >
+                  Salvar
+                </Button>
               </div>
             </div>
           )}

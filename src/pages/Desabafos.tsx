@@ -228,7 +228,9 @@ const Desabafos = () => {
   return (
     <div className="container mx-auto max-w-3xl py-8 px-4">
       <div className="text-center mb-8 animate-fade-in-down">
-        <h1 className="text-2xl sm:text-3xl font-bold font-display">Mural de Desabafos</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">
+          Mural de Desabafos
+        </h1>
         <p className="text-muted-foreground mt-2">
           Um espaço seguro para compartilhar seus pensamentos anonimamente.
         </p>
