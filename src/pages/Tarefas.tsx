@@ -80,7 +80,7 @@ const Tarefas = () => {
 
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [events, setEvents] = useState<{ id: string; title: string; date: string }[]>(() => {
+  const [events, setEvents] = useState<{ id: string; title: string; date: string; color?: string }[]>(() => {
     try {
       const raw = localStorage.getItem('local:events')
       return raw ? JSON.parse(raw) : []
