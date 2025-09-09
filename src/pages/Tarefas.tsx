@@ -81,6 +81,19 @@ const Tarefas = () => {
   const { toast } = useToast()
   const fileImportRef = useRef<HTMLInputElement>(null)
 
+  // Calendar and events state
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [events, setEvents] = useState<{ id: string; title: string; date: string }[]>(() => {
+    try {
+      const raw = localStorage.getItem('local:events')
+      return raw ? JSON.parse(raw) : []
+    } catch {
+      return []
+    }
+  })
+  const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
+  const [eventTitle, setEventTitle] = useState('')
+
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
       data.attachments?.map((att) => ({
