@@ -111,7 +111,7 @@ const Comunidades = () => {
                 <Filter className="mr-2 h-4 w-4" /> Filtros
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-96" align="end">
+            <PopoverContent className="w-full max-w-xs sm:w-96" align="end">
               <CommunityFilters
                 onApply={setFilters}
                 onClear={() => setFilters({})}
