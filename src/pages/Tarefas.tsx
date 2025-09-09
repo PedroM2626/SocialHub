@@ -744,6 +744,53 @@ const Tarefas = () => {
         </div>
 
         <div className="md:col-span-2">
+          <div className="glass-card p-4 mb-4">
+            <h3 className="text-sm font-medium">Mural de Avisos</h3>
+            <div className="mt-3">
+              {(() => {
+                const upcoming = [
+                  ...tasks
+                    .filter(t => t.due_date)
+                    .map(t => ({ id: t.id, type: 'task', title: t.title, date: new Date(t.due_date as any) })),
+                  ...events.map(e => ({ id: e.id, type: 'event', title: e.title, date: new Date(e.date), color: e.color })),
+                ]
+                  .filter(item => {
+                    const daysUntil = Math.ceil((item.date.getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24))
+                    return daysUntil <= notificationRangeDays && daysUntil >= 0
+                  })
+                  .sort((a,b) => +a.date - +b.date)
+
+                if (upcoming.length === 0) return <p className="text-sm text-muted-foreground">Nenhum aviso no alcance selecionado.</p>
+
+                return (
+                  <ul className="space-y-2">
+                    {upcoming.map(u => {
+                      const daysUntil = Math.ceil((u.date.getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24))
+                      return (
+                        <li key={`${u.type}-${u.id}`} className="flex items-center justify-between p-2 rounded border bg-accent/10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: (u as any).color || highlightColor }} />
+                            <div>
+                              <div className="text-sm font-medium">{u.title}</div>
+                              <div className="text-xs text-muted-foreground">{u.date.toLocaleDateString()} • Vence em {Math.ceil((u.date.getTime() - new Date().setHours(0,0,0,0))/(1000*60*60*24))}d</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => {
+                              if ((u as any).type === 'task') { const t = tasks.find(tt => tt.id === u.id); if (t) { setEditingTask(t); setIsEditTaskOpen(true) } }
+                              else { const ev = events.find(xx => xx.id === u.id); if (ev) { setEditingEvent(ev); setIsEditEventOpen(true) } }
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
+              })()}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTasks.map((task, index) => (
               <div
