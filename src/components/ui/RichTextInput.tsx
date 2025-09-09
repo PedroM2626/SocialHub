@@ -140,8 +140,8 @@ export const RichTextInput = ({
         onInput={handleInput}
         data-placeholder={placeholder}
         className={cn(
-          'min-h-[80px] p-2 text-sm outline-none prose prose-sm dark:prose-invert max-w-full',
-          'before:content-[attr(data-placeholder)] before:text-muted-foreground before:absolute',
+          'min-h-[80px] p-2 text-sm outline-none prose prose-sm dark:prose-invert max-w-full text-foreground bg-transparent',
+          'before:content-[attr(data-placeholder)] before:text-muted-foreground before:absolute before:left-2 before:top-2',
           value ? 'before:hidden' : 'before:block',
         )}
         style={{ position: 'relative' }}
