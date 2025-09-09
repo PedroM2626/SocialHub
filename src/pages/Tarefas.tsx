@@ -90,6 +90,7 @@ const Tarefas = () => {
   })
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
+  const [createEventColor, setCreateEventColor] = useState<string | undefined>(undefined)
 
   // edit task modal state (for calendar-day edits)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -370,13 +371,15 @@ const Tarefas = () => {
       toast({ variant: 'destructive', title: 'Erro', description: 'Título e data são obrigatórios.' })
       return
     }
-    const newEvent = { id: `evt-${Date.now()}`, title: eventTitle, date: selectedDate.toISOString() }
+    const defaultColor = createEventColor || dateColors[selectedDate.toDateString()] || highlightColor
+    const newEvent = { id: `evt-${Date.now()}`, title: eventTitle, date: selectedDate.toISOString(), color: defaultColor }
     const next = [newEvent, ...events]
     setEvents(next)
     try {
       localStorage.setItem('local:events', JSON.stringify(next))
     } catch {}
     setEventTitle('')
+    setCreateEventColor(undefined)
     setIsCreateEventOpen(false)
     toast({ title: 'Evento criado', description: 'Seu evento foi agendado.' })
   }
@@ -533,7 +536,7 @@ const Tarefas = () => {
                   onChange={(e) => { setHighlightColor(e.target.value); try { localStorage.setItem('local:highlightColor', e.target.value) } catch {} }}
                   className="w-8 h-8 p-0 rounded"
                 />
-                <Button size="sm" variant="outline" onClick={() => setIsCreateEventOpen(true)}>
+                <Button size="sm" variant="outline" onClick={() => { setCreateEventColor(undefined); setIsCreateEventOpen(true); }}>
                   Agendar
                 </Button>
               </div>
@@ -570,6 +573,30 @@ const Tarefas = () => {
             />
             <div className="mt-4">
               <h4 className="text-sm font-medium">Tarefas no dia</h4>
+
+              <div className="mt-2 mb-3 flex items-center gap-2">
+                <label className="text-sm">Cor deste dia</label>
+                <input
+                  type="color"
+                  value={dateColors[selectedDate?.toDateString() || ''] || highlightColor}
+                  onChange={(e) => {
+                    if (!selectedDate) return
+                    const key = selectedDate.toDateString()
+                    const next = { ...dateColors, [key]: e.target.value }
+                    setDateColors(next)
+                    try { localStorage.setItem('local:dateColors', JSON.stringify(next)) } catch {}
+                  }}
+                />
+                <Button size="sm" variant="ghost" onClick={() => {
+                  if (!selectedDate) return
+                  const key = selectedDate.toDateString()
+                  const next = { ...dateColors }
+                  delete next[key]
+                  setDateColors(next)
+                  try { localStorage.setItem('local:dateColors', JSON.stringify(next)) } catch {}
+                }}>Reset</Button>
+              </div>
+
               {tasksDueOnSelectedDate.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhuma tarefa com prazo neste dia.</p>
               ) : (
@@ -662,6 +689,8 @@ const Tarefas = () => {
             <UiInput value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} />
             <Label>Data</Label>
             <Calendar selected={selectedDate} onSelect={(d) => setSelectedDate(d as Date | undefined)} />
+            <Label>Cor (opcional)</Label>
+            <input type="color" value={createEventColor || dateColors[selectedDate?.toDateString() || ''] || highlightColor} onChange={(e) => setCreateEventColor(e.target.value)} />
             <div className="flex justify-end">
               <Button variant="ghost" onClick={() => setIsCreateEventOpen(false)}>Cancelar</Button>
               <Button onClick={handleCreateEvent}>Salvar</Button>
@@ -705,6 +734,8 @@ const Tarefas = () => {
               <UiInput value={editingEvent.title} onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })} />
               <Label>Data</Label>
               <Calendar selected={new Date(editingEvent.date)} onSelect={(d) => setEditingEvent({ ...editingEvent, date: (d as Date).toISOString() })} />
+              <Label>Cor (opcional)</Label>
+              <input type="color" value={editingEvent.color || dateColors[new Date(editingEvent.date).toDateString()] || highlightColor} onChange={(e) => setEditingEvent({ ...editingEvent, color: e.target.value })} />
               <div className="flex justify-end gap-2">
                 <Button variant="destructive" onClick={() => {
                   const next = events.filter(ev => ev.id !== editingEvent.id)
