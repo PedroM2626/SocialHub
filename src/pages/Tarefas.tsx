@@ -25,12 +25,6 @@ import {
 } from '@/components/ui/popover'
 import { TaskFilters, TaskFilterValues } from '@/components/tasks/TaskFilters'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   CreateEditTaskForm,
   TaskFormValues,
 } from '@/components/tasks/CreateEditTaskForm'
