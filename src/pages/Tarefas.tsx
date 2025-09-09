@@ -549,10 +549,11 @@ const Tarefas = () => {
                 DayButton: (props) => {
                   const day = props.day
                   const key = day ? new Date(day).toDateString() : ''
-                  const color = key && dateColors[key] ? dateColors[key] : null
+                  const eventForDay = events.find(e => new Date(e.date).toDateString() === key)
+                  const color = (eventForDay && eventForDay.color) || (key && dateColors[key] ? dateColors[key] : null)
                   const hasItem = !!(
                     tasks.some(t => t.due_date && new Date(t.due_date as any).toDateString() === key) ||
-                    events.some(e => new Date(e.date).toDateString() === key)
+                    !!eventForDay
                   )
 
                   const style: React.CSSProperties = {}
