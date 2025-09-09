@@ -110,6 +110,24 @@ const Tarefas = () => {
     try { return JSON.parse(localStorage.getItem('local:dateColors') || '{}') } catch { return {} }
   })
 
+  // notification range (days) persisted
+  const [notificationRangeDays, setNotificationRangeDays] = useState(() => {
+    try { return parseInt(localStorage.getItem('local:notificationRangeDays') || '7', 10) } catch { return 7 }
+  })
+
+  // persist events/dateColors/highlightColor/notificationRange
+  useEffect(() => {
+    try { localStorage.setItem('local:events', JSON.stringify(events)) } catch {}
+  }, [events])
+
+  useEffect(() => {
+    try { localStorage.setItem('local:dateColors', JSON.stringify(dateColors)) } catch {}
+  }, [dateColors])
+
+  useEffect(() => {
+    try { localStorage.setItem('local:notificationRangeDays', String(notificationRangeDays)) } catch {}
+  }, [notificationRangeDays])
+
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
       data.attachments?.map((att) => ({
@@ -536,6 +554,19 @@ const Tarefas = () => {
                   onChange={(e) => { setHighlightColor(e.target.value); try { localStorage.setItem('local:highlightColor', e.target.value) } catch {} }}
                   className="w-8 h-8 p-0 rounded"
                 />
+                <label className="text-xs text-muted-foreground">Avisos</label>
+                <select
+                  value={localStorage.getItem('local:notificationRangeDays') || '7'}
+                  onChange={(e) => { try { localStorage.setItem('local:notificationRangeDays', e.target.value) } catch {}; /* force re-render by toggling state */ setNotificationRangeDays(parseInt(e.target.value, 10)) }}
+                  className="rounded border px-2 py-1 bg-background text-sm"
+                >
+                  <option value="90">3 meses</option>
+                  <option value="30">1 mês</option>
+                  <option value="14">2 semanas</option>
+                  <option value="7">1 semana</option>
+                  <option value="5">5 dias</option>
+                  <option value="3">3 dias</option>
+                </select>
                 <Button size="sm" variant="outline" onClick={() => { setCreateEventColor(undefined); setIsCreateEventOpen(true); }}>
                   Agendar
                 </Button>
@@ -551,10 +582,10 @@ const Tarefas = () => {
                   const key = day ? new Date(day).toDateString() : ''
                   const eventForDay = events.find(e => new Date(e.date).toDateString() === key)
                   const color = (eventForDay && eventForDay.color) || (key && dateColors[key] ? dateColors[key] : null)
-                  const hasItem = !!(
-                    tasks.some(t => t.due_date && new Date(t.due_date as any).toDateString() === key) ||
-                    !!eventForDay
-                  )
+                  const tasksCount = tasks.filter(t => t.due_date && new Date(t.due_date as any).toDateString() === key).length
+                  const eventsCount = events.filter(e => new Date(e.date).toDateString() === key).length
+                  const count = tasksCount + eventsCount
+                  const hasItem = count > 0
 
                   const style: React.CSSProperties = {}
                   if (color) {
@@ -567,7 +598,22 @@ const Tarefas = () => {
                     style.borderRadius = '0.375rem'
                   }
 
-                  return <DayButton {...props} style={{ ...(props.style || {}), ...style }} />
+                  const isSelected = !!(props.selected || props.modifiers?.selected)
+                  if (isSelected) {
+                    style.boxShadow = '0 0 0 2px rgba(255,255,255,0.06) inset'
+                    style.outline = '2px solid rgba(255,255,255,0.06)'
+                  }
+
+                  return (
+                    <div className="relative inline-flex">
+                      <DayButton {...props} style={{ ...(props.style || {}), ...style }} />
+                      {count > 0 && (
+                        <span className="absolute -top-2 -right-2 text-[10px] leading-none px-1.5 rounded-full bg-primary text-primary-foreground">
+                          {count}
+                        </span>
+                      )}
+                    </div>
+                  )
                 }
               }}
               style={{ ['--calendar-mark-color' as any]: highlightColor }}
@@ -602,10 +648,18 @@ const Tarefas = () => {
                 <p className="text-sm text-muted-foreground">Nenhuma tarefa com prazo neste dia.</p>
               ) : (
                 <ul className="mt-2 space-y-2">
-                  {tasksDueOnSelectedDate.map((t) => (
+                  {tasksDueOnSelectedDate.map((t) => {
+                    const daysUntil = t.due_date ? Math.ceil((new Date(t.due_date).getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24)) : Infinity
+                    const within = daysUntil <= notificationRangeDays && daysUntil >= 0
+                    return (
                     <li key={t.id} className="p-2 rounded border bg-accent/10 flex items-start justify-between">
                       <div>
-                        <div className="text-sm font-medium">{t.title}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium">{t.title}</div>
+                          {within && (
+                            <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">Vence em {daysUntil}d</span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{t.description}</div>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
@@ -617,7 +671,8 @@ const Tarefas = () => {
                         </Button>
                       </div>
                     </li>
-                  ))}
+                    )
+                  })}
                 </ul>
               )}
             </div>
@@ -633,10 +688,16 @@ const Tarefas = () => {
                 <ul className="mt-2 space-y-2">
                   {events
                     .filter(e => new Date(e.date).toDateString() === selectedDate?.toDateString())
-                    .map(e => (
+                    .map(e => {
+                      const daysUntil = Math.ceil((new Date(e.date).getTime() - new Date().setHours(0,0,0,0)) / (1000*60*60*24))
+                      const within = daysUntil <= notificationRangeDays && daysUntil >= 0
+                      return (
                       <li key={e.id} className="p-2 rounded border bg-accent/10 flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="text-sm font-medium">{e.title}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium">{e.title}</div>
+                            {within && <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">Vence em {daysUntil}d</span>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           <Button size="sm" variant="ghost" onClick={() => { setEditingEvent(e); setIsEditEventOpen(true) }}>
@@ -653,7 +714,8 @@ const Tarefas = () => {
                           </Button>
                         </div>
                       </li>
-                    ))}
+                      )
+                    })}
                 </ul>
               )}
             </div>
