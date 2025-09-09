@@ -31,21 +31,21 @@ const navigationItems = [
 export const MobileHeader = () => {
   const { logout } = useAuth()
   return (
-    <header className="lg:hidden sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-lg px-4 sm:px-6">
+    <header className="lg:hidden sticky top-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-lg px-3 sm:px-6">
       <div className="flex items-center">
         <Sparkles className="h-6 w-auto text-primary" />
-        <span className="ml-2 text-xl font-bold font-display">SocialHub</span>
+        <span className="ml-2 text-lg sm:text-xl font-bold font-display">SocialHub</span>
       </div>
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Abrir menu">
             <Menu className="h-6 w-6" />
             <span className="sr-only">Abrir menu</span>
           </Button>
         </SheetTrigger>
         <SheetContent
           side="left"
-          className="w-64 bg-background p-4 flex flex-col"
+          className="w-64 sm:w-72 md:w-80 bg-background p-4 flex flex-col"
         >
           <div className="flex items-center flex-shrink-0 px-4 mb-8">
             <Sparkles className="h-8 w-auto text-primary" />
@@ -53,7 +53,7 @@ export const MobileHeader = () => {
               SocialHub
             </h1>
           </div>
-          <nav className="flex flex-col space-y-2 flex-1">
+          <nav className="flex flex-col space-y-2 flex-1" aria-label="Mobile primary">
             {navigationItems.map((item) => (
               <NavLink
                 key={item.name}
@@ -69,7 +69,7 @@ export const MobileHeader = () => {
                 }
               >
                 <item.icon className="mr-3 h-5 w-5" aria-hidden="true" />
-                <span>{item.name}</span>
+                <span className="truncate">{item.name}</span>
               </NavLink>
             ))}
           </nav>
