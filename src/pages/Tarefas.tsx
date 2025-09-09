@@ -96,11 +96,18 @@ const Tarefas = () => {
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false)
 
   // edit event state
-  const [editingEvent, setEditingEvent] = useState<{ id: string; title: string; date: string } | null>(null)
+  const [editingEvent, setEditingEvent] = useState<{ id: string; title: string; date: string; color?: string } | null>(null)
   const [isEditEventOpen, setIsEditEventOpen] = useState(false)
 
-  // calendar marking color (user can choose)
-  const [highlightColor, setHighlightColor] = useState('#f97316')
+  // calendar marking color (user can choose) persisted
+  const [highlightColor, setHighlightColor] = useState(() => {
+    try { return localStorage.getItem('local:highlightColor') || '#f97316' } catch { return '#f97316' }
+  })
+
+  // per-date colors persisted
+  const [dateColors, setDateColors] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('local:dateColors') || '{}') } catch { return {} }
+  })
 
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
