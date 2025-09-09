@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   Upload,
   Download,
+  Edit,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,6 +89,14 @@ const Tarefas = () => {
   })
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
+
+  // edit task modal state (for calendar-day edits)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [isEditTaskOpen, setIsEditTaskOpen] = useState(false)
+
+  // edit event state
+  const [editingEvent, setEditingEvent] = useState<{ id: string; title: string; date: string } | null>(null)
+  const [isEditEventOpen, setIsEditEventOpen] = useState(false)
 
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
@@ -520,9 +530,19 @@ const Tarefas = () => {
               ) : (
                 <ul className="mt-2 space-y-2">
                   {tasksDueOnSelectedDate.map((t) => (
-                    <li key={t.id} className="p-2 rounded border bg-accent/10">
-                      <div className="text-sm font-medium">{t.title}</div>
-                      <div className="text-xs text-muted-foreground">{t.description}</div>
+                    <li key={t.id} className="p-2 rounded border bg-accent/10 flex items-start justify-between">
+                      <div>
+                        <div className="text-sm font-medium">{t.title}</div>
+                        <div className="text-xs text-muted-foreground">{t.description}</div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingTask(t); setIsEditTaskOpen(true) }}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteTask(t.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -541,8 +561,24 @@ const Tarefas = () => {
                   {events
                     .filter(e => new Date(e.date).toDateString() === selectedDate?.toDateString())
                     .map(e => (
-                      <li key={e.id} className="p-2 rounded border bg-accent/10">
-                        <div className="text-sm font-medium">{e.title}</div>
+                      <li key={e.id} className="p-2 rounded border bg-accent/10 flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{e.title}</div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingEvent(e); setIsEditEventOpen(true) }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => {
+                            const prev = events
+                            const next = events.filter(ev => ev.id !== e.id)
+                            setEvents(next)
+                            try { localStorage.setItem('local:events', JSON.stringify(next)) } catch {}
+                            // no backend persistence required
+                          }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </li>
                     ))}
                 </ul>
@@ -586,6 +622,63 @@ const Tarefas = () => {
               <Button onClick={handleCreateEvent}>Salvar</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task dialog (opened from calendar day list) */}
+      <Dialog open={isEditTaskOpen} onOpenChange={setIsEditTaskOpen}>
+        <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Tarefa</DialogTitle>
+          </DialogHeader>
+          {editingTask && (
+            <CreateEditTaskForm
+              task={editingTask}
+              onSubmit={(data) => {
+                handleUpdateTask(editingTask.id, data)
+                setIsEditTaskOpen(false)
+                setEditingTask(null)
+              }}
+              onCancel={() => {
+                setIsEditTaskOpen(false)
+                setEditingTask(null)
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Event dialog */}
+      <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
+        <DialogContent className="glass-card max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Evento</DialogTitle>
+          </DialogHeader>
+          {editingEvent && (
+            <div className="space-y-3">
+              <Label>Título</Label>
+              <UiInput value={editingEvent.title} onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })} />
+              <Label>Data</Label>
+              <Calendar selected={new Date(editingEvent.date)} onSelect={(d) => setEditingEvent({ ...editingEvent, date: (d as Date).toISOString() })} />
+              <div className="flex justify-end gap-2">
+                <Button variant="destructive" onClick={() => {
+                  const next = events.filter(ev => ev.id !== editingEvent.id)
+                  setEvents(next)
+                  try { localStorage.setItem('local:events', JSON.stringify(next)) } catch {}
+                  setIsEditEventOpen(false)
+                  setEditingEvent(null)
+                }}>Excluir</Button>
+                <Button variant="ghost" onClick={() => { setIsEditEventOpen(false); setEditingEvent(null) }}>Cancelar</Button>
+                <Button onClick={() => {
+                  const next = events.map(ev => (ev.id === editingEvent.id ? editingEvent : ev))
+                  setEvents(next)
+                  try { localStorage.setItem('local:events', JSON.stringify(next)) } catch {}
+                  setIsEditEventOpen(false)
+                  setEditingEvent(null)
+                }}>Salvar</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
