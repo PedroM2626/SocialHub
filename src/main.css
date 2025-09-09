@@ -72,6 +72,13 @@
   .interactive-card {
     @apply transition-all duration-300 hover:shadow-deep hover:-translate-y-1;
   }
+
+  /* Calendar mark color variable */
+  .has-calendar-item {
+    background-color: var(--calendar-mark-color, #f97316) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border-radius: 0.375rem !important;
+  }
 }
 
 @layer utilities {
