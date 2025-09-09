@@ -556,8 +556,8 @@ const Tarefas = () => {
                 />
                 <label className="text-xs text-muted-foreground">Avisos</label>
                 <select
-                  value={localStorage.getItem('local:notificationRangeDays') || '7'}
-                  onChange={(e) => { try { localStorage.setItem('local:notificationRangeDays', e.target.value) } catch {}; /* force re-render by toggling state */ setNotificationRangeDays(parseInt(e.target.value, 10)) }}
+                  value={notificationRangeDays}
+                  onChange={(e) => { const v = parseInt(e.target.value, 10); setNotificationRangeDays(v); try { localStorage.setItem('local:notificationRangeDays', String(v)) } catch {} }}
                   className="rounded border px-2 py-1 bg-background text-sm"
                 >
                   <option value="90">3 meses</option>
