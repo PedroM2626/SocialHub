@@ -569,19 +569,21 @@ const Tarefas = () => {
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">Calendário</h3>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">Cor</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground hidden sm:inline">Cor</span>
                 <input
+                  aria-label="Selecionar cor do calendário"
                   type="color"
                   value={highlightColor}
                   onChange={(e) => { setHighlightColor(e.target.value); try { localStorage.setItem('local:highlightColor', e.target.value) } catch {} }}
                   className="w-8 h-8 p-0 rounded"
                 />
-                <label className="text-xs text-muted-foreground">Avisos</label>
+                <span className="text-xs text-muted-foreground hidden sm:inline">Avisos</span>
                 <select
+                  aria-label="Alcance de avisos"
                   value={notificationRangeDays}
                   onChange={(e) => { const v = parseInt(e.target.value, 10); setNotificationRangeDays(v); try { localStorage.setItem('local:notificationRangeDays', String(v)) } catch {} }}
-                  className="rounded border px-2 py-1 bg-background text-sm"
+                  className="rounded border px-2 py-1 bg-background text-sm w-full sm:w-auto"
                 >
                   <option value="90">3 meses</option>
                   <option value="30">1 mês</option>
@@ -590,7 +592,7 @@ const Tarefas = () => {
                   <option value="5">5 dias</option>
                   <option value="3">3 dias</option>
                 </select>
-                <Button size="sm" variant="outline" onClick={() => { setCreateEventColor(undefined); setIsCreateEventOpen(true); }}>
+                <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => { setCreateEventColor(undefined); setIsCreateEventOpen(true); }}>
                   Agendar
                 </Button>
               </div>
