@@ -1038,26 +1038,53 @@ const Tarefas = () => {
                 const upcoming = [
                   ...tasks
                     .filter((t) => t.due_date)
-                    .map((t) => ({
-                      id: t.id,
-                      type: 'task',
-                      title: t.title,
-                      date: new Date(t.due_date as any),
-                    })),
-                  ...events.map((e) => ({
-                    id: e.id,
-                    type: 'event',
-                    title: e.title,
-                    date: new Date(e.date),
-                    color: e.color,
-                  })),
+                    .map((t) => {
+                      const base = new Date(t.due_date as any)
+                      const dt = new Date(base)
+                      if ((t as any).start_time) {
+                        const [hh, mm] = (t as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                        dt.setHours(hh, mm, 0, 0)
+                      } else {
+                        dt.setHours(0, 0, 0, 0)
+                      }
+                      return {
+                        id: t.id,
+                        type: 'task',
+                        title: t.title,
+                        date: dt,
+                      }
+                    }),
+                  ...events.map((e) => {
+                    const base = new Date(e.date)
+                    const dt = new Date(base)
+                    if ((e as any).start_time) {
+                      const [hh, mm] = (e as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                      dt.setHours(hh, mm, 0, 0)
+                    } else {
+                      dt.setHours(0, 0, 0, 0)
+                    }
+                    return {
+                      id: e.id,
+                      type: 'event',
+                      title: e.title,
+                      date: dt,
+                      color: e.color,
+                    }
+                  }),
                 ]
                   .filter((item) => {
-                    const daysUntil = Math.ceil(
-                      (item.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
-                        (1000 * 60 * 60 * 24),
-                    )
-                    return daysUntil <= notificationRangeDays && daysUntil >= 0
+                    const now = new Date()
+                    const diffMs = item.date.getTime() - now.getTime()
+                    const remaining =
+                      notificationRangeUnit === 'hours'
+                        ? Math.ceil(diffMs / (1000 * 60 * 60))
+                        : notificationRangeUnit === 'months'
+                        ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                        : Math.ceil(
+                            (item.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                              (1000 * 60 * 60 * 24),
+                          )
+                    return remaining <= notificationRangeValue && remaining >= 0
                   })
                   .sort((a, b) => +a.date - +b.date)
 
