@@ -735,6 +735,8 @@ const Tarefas = () => {
                   className="w-full sm:w-auto"
                   onClick={() => {
                     setCreateEventColor(undefined)
+                    setCreateEventStartTime('')
+                    setCreateEventEndTime('')
                     setIsCreateEventOpen(true)
                   }}
                 >
