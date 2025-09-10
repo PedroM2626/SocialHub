@@ -389,7 +389,8 @@ const Tarefas = () => {
       events,
       dateColors,
       highlightColor,
-      notificationRangeDays,
+      notificationRangeValue,
+      notificationRangeUnit,
     }
     const dataStr = JSON.stringify(payload, null, 2)
     const dataUri =
