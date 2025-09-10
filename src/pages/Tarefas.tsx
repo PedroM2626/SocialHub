@@ -373,10 +373,14 @@ const Tarefas = () => {
     if (!updatedTask) return
 
     try {
-      const ok = await updateTask(taskId, {
-        is_completed: updatedTask.is_completed,
-        subtasks: updatedTask.subtasks,
-      })
+      const ok = await updateTask(
+        taskId,
+        {
+          is_completed: updatedTask.is_completed,
+          subtasks: updatedTask.subtasks,
+        },
+        userId,
+      )
       if (!ok) throw new Error('Failed to persist task update')
     } catch (err) {
       console.error('Failed to persist task toggle', err)
