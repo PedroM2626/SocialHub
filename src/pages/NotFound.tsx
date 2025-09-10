@@ -4,11 +4,16 @@ import { useEffect } from 'react'
 
 const NotFound = () => {
   const location = useLocation()
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     // Log as a warning (not an error) to avoid flooding error reports when 404 is intentionally shown
     console.warn('404 displayed for:', location.pathname)
   }, [location.pathname])
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
