@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User as AppUser } from '@/lib/types'
-import { getUserById, getUsers, getUserByEmail, createUser, updateUser } from '@/lib/db'
+import { getUserById, getUsers, getUserByEmail, createUser, updateUser, syncLocalToSupabase } from '@/lib/db'
 import { users as mockUsers } from '@/lib/mock-data'
 
 interface MockSession {
