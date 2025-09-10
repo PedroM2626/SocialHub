@@ -39,6 +39,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { Task, Subtask } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Tarefas = () => {
   const { user } = useAuth()
