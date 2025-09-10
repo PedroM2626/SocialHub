@@ -267,7 +267,7 @@ const Tarefas = () => {
     )
 
     try {
-      const ok = await updateTask(taskId, updatedTask)
+      const ok = await updateTask(taskId, updatedTask, userId)
       if (!ok) throw new Error('Failed to persist update')
       toast({
         title: 'Sucesso!',
