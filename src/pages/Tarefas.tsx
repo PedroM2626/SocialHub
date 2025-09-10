@@ -1214,6 +1214,16 @@ const Tarefas = () => {
               }
               onChange={(e) => setCreateEventColor(e.target.value)}
             />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Início (opcional)</Label>
+                <UiInput type="time" value={createEventStartTime} onChange={(e) => setCreateEventStartTime(e.target.value)} />
+              </div>
+              <div>
+                <Label>Fim (opcional)</Label>
+                <UiInput type="time" value={createEventEndTime} onChange={(e) => setCreateEventEndTime(e.target.value)} />
+              </div>
+            </div>
             <div className="flex justify-end">
               <Button
                 variant="ghost"
