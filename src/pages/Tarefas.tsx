@@ -496,6 +496,95 @@ const Tarefas = () => {
     }
   }
 
+  const handleMigrateLocalToSupabase = async () => {
+    if (!userId) {
+      toast({ variant: 'destructive', title: 'Login necessário', description: 'Faça login antes de migrar tarefas.' })
+      return
+    }
+
+    let raw: string | null = null
+    try {
+      raw = localStorage.getItem('local:tasks')
+    } catch (e) {
+      console.error('Failed to read local:tasks', e)
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível acessar tarefas locais.' })
+      return
+    }
+
+    if (!raw) {
+      toast({ title: 'Nada a migrar', description: 'Nenhuma tarefa local encontrada.' })
+      return
+    }
+
+    let localTasks: any[] = []
+    try {
+      localTasks = JSON.parse(raw)
+      if (!Array.isArray(localTasks) || localTasks.length === 0) {
+        toast({ title: 'Nada a migrar', description: 'Nenhuma tarefa local encontrada.' })
+        return
+      }
+    } catch (e) {
+      console.error('Failed to parse local tasks', e)
+      toast({ variant: 'destructive', title: 'Erro', description: 'Formato inválido das tarefas locais.' })
+      return
+    }
+
+    const results: { ok: boolean; id?: string; error?: any; localId?: string }[] = []
+    for (const t of localTasks) {
+      try {
+        const payload: any = { ...t, user_id: userId }
+        // Normalize due_date if it's a Date object string
+        if (payload.due_date && payload.due_date instanceof Date) payload.due_date = payload.due_date.toISOString()
+        const created = await createTask(payload)
+        results.push({ ok: true, id: created?.id, localId: t.id })
+      } catch (err) {
+        results.push({ ok: false, error: String(err), localId: t.id })
+      }
+    }
+
+    const failures = results.filter((r) => !r.ok)
+    const successCount = results.filter((r) => r.ok).length
+
+    if (successCount > 0) {
+      try {
+        const remote = await getTasks(userId)
+        const mapped = remote.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          description: r.description || '',
+          is_completed: r.is_completed || false,
+          priority: (r.priority as any) || 'medium',
+          is_public: r.is_public !== undefined ? r.is_public : true,
+          tags: r.tags || [],
+          due_date: r.due_date || null,
+          start_time: r.start_time || '',
+          end_time: r.end_time || '',
+          subtasks: r.subtasks || [],
+          attachments: r.attachments || [],
+          backgroundColor: r.backgroundColor || null,
+          borderStyle: r.borderStyle || null,
+          titleAlignment: r.titleAlignment || 'left',
+          descriptionAlignment: r.descriptionAlignment || 'left',
+        }))
+        setTasks(mapped)
+      } catch (e) {
+        console.error('Failed to reload tasks after migration', e)
+      }
+    }
+
+    if (failures.length === 0) {
+      try { localStorage.removeItem('local:tasks') } catch {}
+      toast({ title: 'Migração completa', description: `${successCount} tarefas migradas.` })
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Migração parcial',
+        description: `${successCount} migradas, ${failures.length} falharam. Ver console para detalhes.`,
+      })
+      console.error('Migration failures', failures)
+    }
+  }
+
   const tasksDueOnSelectedDate = useMemo(() => {
     if (!selectedDate) return []
     return tasks.filter((t) => {
