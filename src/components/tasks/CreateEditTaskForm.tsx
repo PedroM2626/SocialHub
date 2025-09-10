@@ -76,12 +76,24 @@ const tagSchema = z.object({
   color: z.string(),
 })
 
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
+
 const taskSchema = z.object({
   title: z
     .string()
     .min(10, { message: 'O título deve ter pelo menos 3 caracteres.' }),
   description: z.string().optional(),
   due_date: z.date().optional(),
+  start_time: z
+    .string()
+    .regex(timeRegex, 'Formato HH:MM')
+    .optional()
+    .or(z.literal('')),
+  end_time: z
+    .string()
+    .regex(timeRegex, 'Formato HH:MM')
+    .optional()
+    .or(z.literal('')),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   tags: z.array(tagSchema).optional(),
   subtasks: z.array(subtaskSchema).optional(),
@@ -229,6 +241,8 @@ export const CreateEditTaskForm = ({
       title: task?.title || '',
       description: task?.description || '',
       due_date: task?.due_date ? new Date(task.due_date) : undefined,
+      start_time: task?.start_time || '',
+      end_time: task?.end_time || '',
       priority: task?.priority || 'medium',
       tags: task?.tags || [],
       subtasks: task?.subtasks || [],
@@ -246,6 +260,8 @@ export const CreateEditTaskForm = ({
         title: task.title || '',
         description: task.description || '',
         due_date: task.due_date ? new Date(task.due_date) : undefined,
+        start_time: task.start_time || '',
+        end_time: task.end_time || '',
         priority: task.priority || 'medium',
         tags: task.tags || [],
         subtasks: task.subtasks || [],
@@ -396,6 +412,42 @@ export const CreateEditTaskForm = ({
                     />
                   </PopoverContent>
                 </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="start_time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Início (opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="time"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="end_time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fim (opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="time"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

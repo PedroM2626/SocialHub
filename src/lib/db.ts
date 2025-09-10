@@ -11,6 +11,26 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
   ])
 }
 
+// Runtime feature detection: check if tasks.user_id column exists
+let TASKS_HAS_USER_ID: boolean | null = null
+;(async () => {
+  try {
+    // Try a lightweight select of user_id; if column missing, Postgres will error
+    const { data, error } = await withTimeout(
+      supabase.from('tasks').select('user_id').limit(1),
+    )
+    if (error) {
+      // assume missing column or no permissions; set flag false (no verbose DB error)
+      TASKS_HAS_USER_ID = false
+    } else {
+      TASKS_HAS_USER_ID = true
+    }
+  } catch (_e) {
+    // assume missing column or network issue
+    TASKS_HAS_USER_ID = false
+  }
+})()
+
 export async function getUsers(): Promise<User[]> {
   try {
     const { data, error } = await withTimeout(
@@ -431,23 +451,51 @@ function writeLocalTasks(items: any[]) {
 }
 
 // Tasks persistence
-export async function getTasks(): Promise<any[]> {
+function errToString(err: any) {
   try {
-    const { data, error } = await withTimeout(
-      supabase.from('tasks').select('*').order('id', { ascending: false }),
-    )
+    if (!err) return String(err)
+    if (typeof err === 'string') return err
+    if (err.message) return err.message
+    return JSON.stringify(err)
+  } catch (e) {
+    return String(err)
+  }
+}
+
+export async function getTasks(userId?: string): Promise<any[]> {
+  try {
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .order('id', { ascending: false })
+    // Only apply user filter if DB has user_id column
+    if (userId && TASKS_HAS_USER_ID === true)
+      query = query.eq('user_id', userId)
+    const { data, error } = await withTimeout(query)
     if (error) throw error
-    const remote = data || []
-    const local = readLocalTasks()
-    return [...local, ...remote]
+    return data || []
   } catch (err) {
-    console.warn('getTasks failed, returning local fallback', err)
-    return readLocalTasks()
+    const msg = errToString(err)
+    console.error('getTasks failed', msg)
+    // If failure due to missing user_id column, retry without user filter
+    if (userId && /column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      try {
+        const { data, error } = await withTimeout(
+          supabase.from('tasks').select('*').order('id', { ascending: false }),
+        )
+        if (error) throw error
+        return data || []
+      } catch (err2) {
+        console.error('getTasks retry failed', errToString(err2))
+        return []
+      }
+    }
+    return []
   }
 }
 
 export async function createTask(payload: any) {
-  const record = {
+  const record: any = {
     id: payload.id || `task-${Date.now()}`,
     title: payload.title,
     description: payload.description || null,
@@ -456,10 +504,15 @@ export async function createTask(payload: any) {
     is_public: payload.is_public !== undefined ? payload.is_public : true,
     tags: payload.tags || [],
     due_date: payload.due_date || null,
+    start_time: payload.start_time || null,
+    end_time: payload.end_time || null,
     subtasks: payload.subtasks || [],
     backgroundColor: payload.backgroundColor || null,
     borderStyle: payload.borderStyle || null,
   }
+  // Only include user_id if DB supports it
+  if (payload.user_id && TASKS_HAS_USER_ID === true)
+    record.user_id = payload.user_id
 
   try {
     const { data, error } = await withTimeout(
@@ -468,58 +521,69 @@ export async function createTask(payload: any) {
     if (error) throw error
     return data
   } catch (err) {
-    console.warn('createTask failed, saving locally as fallback', err)
-    try {
-      const current = readLocalTasks()
-      const next = [record, ...current]
-      writeLocalTasks(next)
-      return record
-    } catch (e) {
-      console.error('local createTask failed', e)
-      return null
+    const msg = errToString(err)
+    console.error('createTask failed', msg)
+    if (/column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      throw new Error(
+        'createTask failed: database missing user_id column. Run migration to add user_id column.',
+      )
     }
+    throw err
   }
 }
 
-export async function updateTask(id: string, payload: any) {
+export async function updateTask(id: string, payload: any, userId?: string) {
   try {
-    const { error } = await withTimeout(
-      supabase.from('tasks').update(payload).eq('id', id),
-    )
+    let query = supabase.from('tasks').update(payload).eq('id', id)
+    if (userId && TASKS_HAS_USER_ID === true)
+      query = query.eq('user_id', userId)
+    const { error } = await withTimeout(query)
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('updateTask failed, applying local fallback', err)
-    try {
-      const current = readLocalTasks()
-      const next = current.map((t) => (t.id === id ? { ...t, ...payload } : t))
-      writeLocalTasks(next)
-      return true
-    } catch (e) {
-      console.error('local updateTask failed', e)
-      return false
+    const msg = errToString(err)
+    console.error('updateTask failed', msg)
+    if (userId && /column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      // retry without user filter
+      try {
+        const { error } = await withTimeout(
+          supabase.from('tasks').update(payload).eq('id', id),
+        )
+        if (error) throw error
+        return true
+      } catch (err2) {
+        console.error('updateTask retry failed', errToString(err2))
+        throw err2
+      }
     }
+    throw err
   }
 }
 
-export async function deleteTask(id: string) {
+export async function deleteTask(id: string, userId?: string) {
   try {
-    const { error } = await withTimeout(
-      supabase.from('tasks').delete().eq('id', id),
-    )
+    let query = supabase.from('tasks').delete().eq('id', id)
+    if (userId && TASKS_HAS_USER_ID === true)
+      query = query.eq('user_id', userId)
+    const { error } = await withTimeout(query)
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('deleteTask failed, applying local fallback', err)
-    try {
-      const current = readLocalTasks()
-      const next = current.filter((t) => t.id !== id)
-      writeLocalTasks(next)
-      return true
-    } catch (e) {
-      console.error('local deleteTask failed', e)
-      return false
+    const msg = errToString(err)
+    console.error('deleteTask failed', msg)
+    if (userId && /column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      try {
+        const { error } = await withTimeout(
+          supabase.from('tasks').delete().eq('id', id),
+        )
+        if (error) throw error
+        return true
+      } catch (err2) {
+        console.error('deleteTask retry failed', errToString(err2))
+        throw err2
+      }
     }
+    throw err
   }
 }
 

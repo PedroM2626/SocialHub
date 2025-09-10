@@ -173,6 +173,8 @@ export interface Database {
           priority: 'low' | 'medium' | 'high' | 'urgent'
           tags: string[] | null
           due_date: string | null
+          start_time: string | null
+          end_time: string | null
         }
         Insert: {
           id?: string
@@ -184,6 +186,8 @@ export interface Database {
           priority?: 'low' | 'medium' | 'high' | 'urgent'
           tags?: string[] | null
           due_date?: string | null
+          start_time?: string | null
+          end_time?: string | null
         }
         Update: {
           id?: string
@@ -195,6 +199,8 @@ export interface Database {
           priority?: 'low' | 'medium' | 'high' | 'urgent'
           tags?: string[] | null
           due_date?: string | null
+          start_time?: string | null
+          end_time?: string | null
         }
       }
       desabafos: {

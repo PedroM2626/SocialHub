@@ -39,17 +39,20 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { Task, Subtask } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Tarefas = () => {
+  const { user } = useAuth()
+  const userId = user?.id
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
 
-  // load remote tasks if available
+  // load remote tasks for current user
   useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
-        const remote = await getTasks()
-        if (mounted && remote.length > 0) {
+        const remote = await getTasks(userId)
+        if (mounted) {
           const mapped = remote.map((r: any) => ({
             id: r.id,
             title: r.title,
@@ -59,6 +62,8 @@ const Tarefas = () => {
             is_public: r.is_public !== undefined ? r.is_public : true,
             tags: r.tags || [],
             due_date: r.due_date || null,
+            start_time: r.start_time || '',
+            end_time: r.end_time || '',
             subtasks: r.subtasks || [],
             attachments: r.attachments || [],
             backgroundColor: r.backgroundColor || null,
@@ -70,13 +75,15 @@ const Tarefas = () => {
           return
         }
       } catch (err) {
-        console.warn('Failed to load tasks from DB, falling back to mock', err)
+        console.warn('Failed to load tasks from DB', err)
+        // set to empty list to avoid showing mock placeholders
+        if (mounted) setTasks([])
       }
     })()
     return () => {
       mounted = false
     }
-  }, [])
+  }, [userId])
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState<Partial<TaskFilterValues>>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -86,7 +93,14 @@ const Tarefas = () => {
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [events, setEvents] = useState<
-    { id: string; title: string; date: string; color?: string }[]
+    {
+      id: string
+      title: string
+      date: string
+      color?: string
+      start_time?: string
+      end_time?: string
+    }[]
   >(() => {
     try {
       const raw = localStorage.getItem('local:events')
@@ -100,6 +114,8 @@ const Tarefas = () => {
   const [createEventColor, setCreateEventColor] = useState<string | undefined>(
     undefined,
   )
+  const [createEventStartTime, setCreateEventStartTime] = useState<string>('')
+  const [createEventEndTime, setCreateEventEndTime] = useState<string>('')
 
   // edit task modal state (for calendar-day edits)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -111,6 +127,8 @@ const Tarefas = () => {
     title: string
     date: string
     color?: string
+    start_time?: string
+    end_time?: string
   } | null>(null)
   const [isEditEventOpen, setIsEditEventOpen] = useState(false)
 
@@ -132,15 +150,28 @@ const Tarefas = () => {
     }
   })
 
-  // notification range (days) persisted
-  const [notificationRangeDays, setNotificationRangeDays] = useState(() => {
+  // notification range customizable (value + unit)
+  const [notificationRangeValue, setNotificationRangeValue] = useState<number>(
+    () => {
+      try {
+        const stored = localStorage.getItem('local:notificationRangeValue')
+        if (stored) return parseInt(stored, 10)
+        const legacy = localStorage.getItem('local:notificationRangeDays')
+        return legacy ? parseInt(legacy, 10) : 7
+      } catch {
+        return 7
+      }
+    },
+  )
+  const [notificationRangeUnit, setNotificationRangeUnit] = useState<
+    'hours' | 'days' | 'months'
+  >(() => {
     try {
-      return parseInt(
-        localStorage.getItem('local:notificationRangeDays') || '7',
-        10,
+      return (
+        (localStorage.getItem('local:notificationRangeUnit') as any) || 'days'
       )
     } catch {
-      return 7
+      return 'days'
     }
   })
 
@@ -160,11 +191,12 @@ const Tarefas = () => {
   useEffect(() => {
     try {
       localStorage.setItem(
-        'local:notificationRangeDays',
-        String(notificationRangeDays),
+        'local:notificationRangeValue',
+        String(notificationRangeValue),
       )
+      localStorage.setItem('local:notificationRangeUnit', notificationRangeUnit)
     } catch {}
-  }, [notificationRangeDays])
+  }, [notificationRangeValue, notificationRangeUnit])
 
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
@@ -185,6 +217,8 @@ const Tarefas = () => {
       is_public: false,
       tags: data.tags || [],
       due_date: data.due_date,
+      start_time: (data as any).start_time || '',
+      end_time: (data as any).end_time || '',
       subtasks: (data.subtasks as Subtask[]) || [],
       attachments: newAttachments,
       backgroundColor: data.backgroundColor,
@@ -198,7 +232,7 @@ const Tarefas = () => {
     setIsCreateModalOpen(false)
 
     try {
-      const created = await createTask(newTask)
+      const created = await createTask({ ...newTask, user_id: userId })
       if (!created) throw new Error('Failed to persist task')
       // replace id if backend returned different
       setTasks((prev) =>
@@ -233,6 +267,8 @@ const Tarefas = () => {
       priority: data.priority,
       tags: data.tags || [],
       due_date: data.due_date,
+      start_time: (data as any).start_time || '',
+      end_time: (data as any).end_time || '',
       subtasks: (data.subtasks as Subtask[]) || [],
       attachments: updatedAttachments,
       backgroundColor: data.backgroundColor,
@@ -248,7 +284,7 @@ const Tarefas = () => {
     )
 
     try {
-      const ok = await updateTask(taskId, updatedTask)
+      const ok = await updateTask(taskId, updatedTask, userId)
       if (!ok) throw new Error('Failed to persist update')
       toast({
         title: 'Sucesso!',
@@ -270,7 +306,7 @@ const Tarefas = () => {
     const previous = tasks
     setTasks((prev) => prev.filter((task) => task.id !== taskId))
     try {
-      const ok = await deleteTask(taskId)
+      const ok = await deleteTask(taskId, userId)
       if (!ok) throw new Error('Failed to delete')
       toast({
         variant: 'destructive',
@@ -354,10 +390,14 @@ const Tarefas = () => {
     if (!updatedTask) return
 
     try {
-      const ok = await updateTask(taskId, {
-        is_completed: updatedTask.is_completed,
-        subtasks: updatedTask.subtasks,
-      })
+      const ok = await updateTask(
+        taskId,
+        {
+          is_completed: updatedTask.is_completed,
+          subtasks: updatedTask.subtasks,
+        },
+        userId,
+      )
       if (!ok) throw new Error('Failed to persist task update')
     } catch (err) {
       console.error('Failed to persist task toggle', err)
@@ -376,7 +416,8 @@ const Tarefas = () => {
       events,
       dateColors,
       highlightColor,
-      notificationRangeDays,
+      notificationRangeValue,
+      notificationRangeUnit,
     }
     const dataStr = JSON.stringify(payload, null, 2)
     const dataUri =
@@ -411,8 +452,12 @@ const Tarefas = () => {
           if (imported.dateColors) setDateColors(imported.dateColors)
           if (imported.highlightColor)
             setHighlightColor(imported.highlightColor)
-          if (imported.notificationRangeDays)
-            setNotificationRangeDays(imported.notificationRangeDays)
+          if (typeof imported.notificationRangeValue === 'number')
+            setNotificationRangeValue(imported.notificationRangeValue)
+          else if (imported.notificationRangeDays)
+            setNotificationRangeValue(imported.notificationRangeDays)
+          if (imported.notificationRangeUnit)
+            setNotificationRangeUnit(imported.notificationRangeUnit)
 
           try {
             localStorage.setItem(
@@ -434,9 +479,18 @@ const Tarefas = () => {
           } catch {}
           try {
             localStorage.setItem(
-              'local:notificationRangeDays',
-              String(imported.notificationRangeDays || notificationRangeDays),
+              'local:notificationRangeValue',
+              String(
+                imported.notificationRangeValue ||
+                  imported.notificationRangeDays ||
+                  notificationRangeValue,
+              ),
             )
+            if (imported.notificationRangeUnit)
+              localStorage.setItem(
+                'local:notificationRangeUnit',
+                imported.notificationRangeUnit,
+              )
           } catch {}
 
           toast({ title: 'Sucesso!', description: 'Dados importados.' })
@@ -455,6 +509,124 @@ const Tarefas = () => {
     reader.readAsText(file)
     if (fileImportRef.current) {
       fileImportRef.current.value = ''
+    }
+  }
+
+  const handleMigrateLocalToSupabase = async () => {
+    if (!userId) {
+      toast({
+        variant: 'destructive',
+        title: 'Login necessário',
+        description: 'Faça login antes de migrar tarefas.',
+      })
+      return
+    }
+
+    let raw: string | null = null
+    try {
+      raw = localStorage.getItem('local:tasks')
+    } catch (e) {
+      console.error('Failed to read local:tasks', e)
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível acessar tarefas locais.',
+      })
+      return
+    }
+
+    if (!raw) {
+      toast({
+        title: 'Nada a migrar',
+        description: 'Nenhuma tarefa local encontrada.',
+      })
+      return
+    }
+
+    let localTasks: any[] = []
+    try {
+      localTasks = JSON.parse(raw)
+      if (!Array.isArray(localTasks) || localTasks.length === 0) {
+        toast({
+          title: 'Nada a migrar',
+          description: 'Nenhuma tarefa local encontrada.',
+        })
+        return
+      }
+    } catch (e) {
+      console.error('Failed to parse local tasks', e)
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Formato inválido das tarefas locais.',
+      })
+      return
+    }
+
+    const results: {
+      ok: boolean
+      id?: string
+      error?: any
+      localId?: string
+    }[] = []
+    for (const t of localTasks) {
+      try {
+        const payload: any = { ...t, user_id: userId }
+        // Normalize due_date if it's a Date object string
+        if (payload.due_date && payload.due_date instanceof Date)
+          payload.due_date = payload.due_date.toISOString()
+        const created = await createTask(payload)
+        results.push({ ok: true, id: created?.id, localId: t.id })
+      } catch (err) {
+        results.push({ ok: false, error: String(err), localId: t.id })
+      }
+    }
+
+    const failures = results.filter((r) => !r.ok)
+    const successCount = results.filter((r) => r.ok).length
+
+    if (successCount > 0) {
+      try {
+        const remote = await getTasks(userId)
+        const mapped = remote.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          description: r.description || '',
+          is_completed: r.is_completed || false,
+          priority: (r.priority as any) || 'medium',
+          is_public: r.is_public !== undefined ? r.is_public : true,
+          tags: r.tags || [],
+          due_date: r.due_date || null,
+          start_time: r.start_time || '',
+          end_time: r.end_time || '',
+          subtasks: r.subtasks || [],
+          attachments: r.attachments || [],
+          backgroundColor: r.backgroundColor || null,
+          borderStyle: r.borderStyle || null,
+          titleAlignment: r.titleAlignment || 'left',
+          descriptionAlignment: r.descriptionAlignment || 'left',
+        }))
+        setTasks(mapped)
+      } catch (e) {
+        console.error('Failed to reload tasks after migration', e)
+      }
+    }
+
+    if (failures.length === 0) {
+      try {
+        localStorage.removeItem('local:tasks')
+      } catch {}
+      toast({
+        title: 'Migração completa',
+        description: `${successCount} tarefas migradas.`,
+      })
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Migração parcial',
+        description: `${successCount} migradas, ${failures.length} falharam. Ver console para detalhes.`,
+      })
+      console.error('Migration failures', failures)
     }
   }
 
@@ -489,6 +661,8 @@ const Tarefas = () => {
       title: eventTitle,
       date: selectedDate.toISOString(),
       color: defaultColor,
+      start_time: createEventStartTime || '',
+      end_time: createEventEndTime || '',
     }
     const next = [newEvent, ...events]
     setEvents(next)
@@ -497,6 +671,8 @@ const Tarefas = () => {
     } catch {}
     setEventTitle('')
     setCreateEventColor(undefined)
+    setCreateEventStartTime('')
+    setCreateEventEndTime('')
     setIsCreateEventOpen(false)
     toast({ title: 'Evento criado', description: 'Seu evento foi agendado.' })
   }
@@ -582,6 +758,14 @@ const Tarefas = () => {
             className="w-full sm:w-auto"
           >
             <Download className="mr-2 h-4 w-4" /> Exportar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMigrateLocalToSupabase}
+            className="w-full sm:w-auto"
+          >
+            <Upload className="mr-2 h-4 w-4" /> Migrar locais → Supabase
           </Button>
           <Button
             onClick={() => setIsCreateModalOpen(true)}
@@ -680,27 +864,29 @@ const Tarefas = () => {
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   Avisos
                 </span>
+                <input
+                  aria-label="Quantidade"
+                  type="number"
+                  min={1}
+                  value={notificationRangeValue}
+                  onChange={(e) =>
+                    setNotificationRangeValue(
+                      Math.max(1, parseInt(e.target.value || '1', 10)),
+                    )
+                  }
+                  className="rounded border px-2 py-1 bg-background text-sm w-20"
+                />
                 <select
-                  aria-label="Alcance de avisos"
-                  value={notificationRangeDays}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10)
-                    setNotificationRangeDays(v)
-                    try {
-                      localStorage.setItem(
-                        'local:notificationRangeDays',
-                        String(v),
-                      )
-                    } catch {}
-                  }}
+                  aria-label="Unidade"
+                  value={notificationRangeUnit}
+                  onChange={(e) =>
+                    setNotificationRangeUnit(e.target.value as any)
+                  }
                   className="rounded border px-2 py-1 bg-background text-sm w-full sm:w-auto"
                 >
-                  <option value="90">3 meses</option>
-                  <option value="30">1 mês</option>
-                  <option value="14">2 semanas</option>
-                  <option value="7">1 semana</option>
-                  <option value="5">5 dias</option>
-                  <option value="3">3 dias</option>
+                  <option value="hours">horas</option>
+                  <option value="days">dias</option>
+                  <option value="months">meses</option>
                 </select>
                 <Button
                   size="sm"
@@ -708,6 +894,8 @@ const Tarefas = () => {
                   className="w-full sm:w-auto"
                   onClick={() => {
                     setCreateEventColor(undefined)
+                    setCreateEventStartTime('')
+                    setCreateEventEndTime('')
                     setIsCreateEventOpen(true)
                   }}
                 >
@@ -828,15 +1016,38 @@ const Tarefas = () => {
               ) : (
                 <ul className="mt-2 space-y-2">
                   {tasksDueOnSelectedDate.map((t) => {
-                    const daysUntil = t.due_date
-                      ? Math.ceil(
-                          (new Date(t.due_date).getTime() -
-                            new Date().setHours(0, 0, 0, 0)) /
-                            (1000 * 60 * 60 * 24),
-                        )
-                      : Infinity
+                    const target = (() => {
+                      const base = t.due_date
+                        ? new Date(t.due_date as any)
+                        : null
+                      if (!base) return null
+                      if ((t as any).start_time) {
+                        const [hh, mm] = (t as any).start_time
+                          .split(':')
+                          .map((n: string) => parseInt(n, 10))
+                        const dt = new Date(base)
+                        dt.setHours(hh, mm, 0, 0)
+                        return dt
+                      }
+                      const dt = new Date(base)
+                      dt.setHours(0, 0, 0, 0)
+                      return dt
+                    })()
+                    const now = new Date()
+                    const remaining = (() => {
+                      if (!target) return Infinity
+                      const diffMs = target.getTime() - now.getTime()
+                      if (notificationRangeUnit === 'hours')
+                        return Math.ceil(diffMs / (1000 * 60 * 60))
+                      if (notificationRangeUnit === 'months')
+                        return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                      return Math.ceil(
+                        (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                    })()
                     const within =
-                      daysUntil <= notificationRangeDays && daysUntil >= 0
+                      remaining <= notificationRangeValue && remaining >= 0
                     return (
                       <li
                         key={t.id}
@@ -902,13 +1113,34 @@ const Tarefas = () => {
                         selectedDate?.toDateString(),
                     )
                     .map((e) => {
-                      const daysUntil = Math.ceil(
-                        (new Date(e.date).getTime() -
-                          new Date().setHours(0, 0, 0, 0)) /
-                          (1000 * 60 * 60 * 24),
-                      )
+                      const target = (() => {
+                        const base = new Date(e.date)
+                        if ((e as any).start_time) {
+                          const [hh, mm] = (e as any).start_time
+                            .split(':')
+                            .map((n: string) => parseInt(n, 10))
+                          const dt = new Date(base)
+                          dt.setHours(hh, mm, 0, 0)
+                          return dt
+                        }
+                        const dt = new Date(base)
+                        dt.setHours(0, 0, 0, 0)
+                        return dt
+                      })()
+                      const now = new Date()
+                      const remaining = (() => {
+                        const diffMs = target.getTime() - now.getTime()
+                        if (notificationRangeUnit === 'hours')
+                          return Math.ceil(diffMs / (1000 * 60 * 60))
+                        if (notificationRangeUnit === 'months')
+                          return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                        return Math.ceil(
+                          (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                            (1000 * 60 * 60 * 24),
+                        )
+                      })()
                       const within =
-                        daysUntil <= notificationRangeDays && daysUntil >= 0
+                        remaining <= notificationRangeValue && remaining >= 0
                       return (
                         <li
                           key={e.id}
@@ -975,26 +1207,58 @@ const Tarefas = () => {
                 const upcoming = [
                   ...tasks
                     .filter((t) => t.due_date)
-                    .map((t) => ({
-                      id: t.id,
-                      type: 'task',
-                      title: t.title,
-                      date: new Date(t.due_date as any),
-                    })),
-                  ...events.map((e) => ({
-                    id: e.id,
-                    type: 'event',
-                    title: e.title,
-                    date: new Date(e.date),
-                    color: e.color,
-                  })),
+                    .map((t) => {
+                      const base = new Date(t.due_date as any)
+                      const dt = new Date(base)
+                      if ((t as any).start_time) {
+                        const [hh, mm] = (t as any).start_time
+                          .split(':')
+                          .map((n: string) => parseInt(n, 10))
+                        dt.setHours(hh, mm, 0, 0)
+                      } else {
+                        dt.setHours(0, 0, 0, 0)
+                      }
+                      return {
+                        id: t.id,
+                        type: 'task',
+                        title: t.title,
+                        date: dt,
+                      }
+                    }),
+                  ...events.map((e) => {
+                    const base = new Date(e.date)
+                    const dt = new Date(base)
+                    if ((e as any).start_time) {
+                      const [hh, mm] = (e as any).start_time
+                        .split(':')
+                        .map((n: string) => parseInt(n, 10))
+                      dt.setHours(hh, mm, 0, 0)
+                    } else {
+                      dt.setHours(0, 0, 0, 0)
+                    }
+                    return {
+                      id: e.id,
+                      type: 'event',
+                      title: e.title,
+                      date: dt,
+                      color: e.color,
+                    }
+                  }),
                 ]
                   .filter((item) => {
-                    const daysUntil = Math.ceil(
-                      (item.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
-                        (1000 * 60 * 60 * 24),
-                    )
-                    return daysUntil <= notificationRangeDays && daysUntil >= 0
+                    const now = new Date()
+                    const diffMs = item.date.getTime() - now.getTime()
+                    const remaining =
+                      notificationRangeUnit === 'hours'
+                        ? Math.ceil(diffMs / (1000 * 60 * 60))
+                        : notificationRangeUnit === 'months'
+                          ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                          : Math.ceil(
+                              (item.date.getTime() -
+                                new Date().setHours(0, 0, 0, 0)) /
+                                (1000 * 60 * 60 * 24),
+                            )
+                    return remaining <= notificationRangeValue && remaining >= 0
                   })
                   .sort((a, b) => +a.date - +b.date)
 
@@ -1031,12 +1295,20 @@ const Tarefas = () => {
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {u.date.toLocaleDateString()} • Vence em{' '}
-                                {Math.ceil(
-                                  (u.date.getTime() -
-                                    new Date().setHours(0, 0, 0, 0)) /
-                                    (1000 * 60 * 60 * 24),
-                                )}
-                                d
+                                {(() => {
+                                  const now = new Date()
+                                  const diffMs =
+                                    u.date.getTime() - now.getTime()
+                                  if (notificationRangeUnit === 'hours')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                  if (notificationRangeUnit === 'months')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                  return `${Math.ceil(
+                                    (u.date.getTime() -
+                                      new Date().setHours(0, 0, 0, 0)) /
+                                      (1000 * 60 * 60 * 24),
+                                  )}d`
+                                })()}
                               </div>
                             </div>
                           </div>
@@ -1116,6 +1388,24 @@ const Tarefas = () => {
               }
               onChange={(e) => setCreateEventColor(e.target.value)}
             />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Início (opcional)</Label>
+                <UiInput
+                  type="time"
+                  value={createEventStartTime}
+                  onChange={(e) => setCreateEventStartTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Fim (opcional)</Label>
+                <UiInput
+                  type="time"
+                  value={createEventEndTime}
+                  onChange={(e) => setCreateEventEndTime(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="flex justify-end">
               <Button
                 variant="ghost"
@@ -1189,6 +1479,34 @@ const Tarefas = () => {
                   setEditingEvent({ ...editingEvent, color: e.target.value })
                 }
               />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Início (opcional)</Label>
+                  <UiInput
+                    type="time"
+                    value={(editingEvent.start_time as any) || ''}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        start_time: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Fim (opcional)</Label>
+                  <UiInput
+                    type="time"
+                    value={(editingEvent.end_time as any) || ''}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        end_time: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button
                   variant="destructive"
