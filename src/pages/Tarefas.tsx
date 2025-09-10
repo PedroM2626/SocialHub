@@ -707,27 +707,23 @@ const Tarefas = () => {
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   Avisos
                 </span>
+                <input
+                  aria-label="Quantidade"
+                  type="number"
+                  min={1}
+                  value={notificationRangeValue}
+                  onChange={(e) => setNotificationRangeValue(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                  className="rounded border px-2 py-1 bg-background text-sm w-20"
+                />
                 <select
-                  aria-label="Alcance de avisos"
-                  value={notificationRangeDays}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10)
-                    setNotificationRangeDays(v)
-                    try {
-                      localStorage.setItem(
-                        'local:notificationRangeDays',
-                        String(v),
-                      )
-                    } catch {}
-                  }}
+                  aria-label="Unidade"
+                  value={notificationRangeUnit}
+                  onChange={(e) => setNotificationRangeUnit(e.target.value as any)}
                   className="rounded border px-2 py-1 bg-background text-sm w-full sm:w-auto"
                 >
-                  <option value="90">3 meses</option>
-                  <option value="30">1 mês</option>
-                  <option value="14">2 semanas</option>
-                  <option value="7">1 semana</option>
-                  <option value="5">5 dias</option>
-                  <option value="3">3 dias</option>
+                  <option value="hours">horas</option>
+                  <option value="days">dias</option>
+                  <option value="months">meses</option>
                 </select>
                 <Button
                   size="sm"
