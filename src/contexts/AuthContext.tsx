@@ -45,6 +45,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (dbUser && mounted) {
               setUser(dbUser)
               setSession(savedSession)
+              try {
+                syncLocalToSupabase(dbUser.id).catch((e) =>
+                  console.warn('[Auth] syncLocalToSupabase failed', e),
+                )
+              } catch (e) {}
             } else if (mounted) {
               localStorage.removeItem('socialhub_session')
             }
