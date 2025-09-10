@@ -855,15 +855,33 @@ const Tarefas = () => {
               ) : (
                 <ul className="mt-2 space-y-2">
                   {tasksDueOnSelectedDate.map((t) => {
-                    const daysUntil = t.due_date
-                      ? Math.ceil(
-                          (new Date(t.due_date).getTime() -
-                            new Date().setHours(0, 0, 0, 0)) /
-                            (1000 * 60 * 60 * 24),
-                        )
-                      : Infinity
-                    const within =
-                      daysUntil <= notificationRangeDays && daysUntil >= 0
+                    const target = (() => {
+                      const base = t.due_date ? new Date(t.due_date as any) : null
+                      if (!base) return null
+                      if ((t as any).start_time) {
+                        const [hh, mm] = (t as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                        const dt = new Date(base)
+                        dt.setHours(hh, mm, 0, 0)
+                        return dt
+                      }
+                      const dt = new Date(base)
+                      dt.setHours(0, 0, 0, 0)
+                      return dt
+                    })()
+                    const now = new Date()
+                    const remaining = (() => {
+                      if (!target) return Infinity
+                      const diffMs = target.getTime() - now.getTime()
+                      if (notificationRangeUnit === 'hours')
+                        return Math.ceil(diffMs / (1000 * 60 * 60))
+                      if (notificationRangeUnit === 'months')
+                        return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                      return Math.ceil(
+                        (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                    })()
+                    const within = remaining <= notificationRangeValue && remaining >= 0
                     return (
                       <li
                         key={t.id}
