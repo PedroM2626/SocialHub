@@ -289,7 +289,7 @@ const Tarefas = () => {
     const previous = tasks
     setTasks((prev) => prev.filter((task) => task.id !== taskId))
     try {
-      const ok = await deleteTask(taskId)
+      const ok = await deleteTask(taskId, userId)
       if (!ok) throw new Error('Failed to delete')
       toast({
         variant: 'destructive',
