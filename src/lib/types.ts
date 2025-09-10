@@ -97,6 +97,8 @@ export interface Task {
   is_public: boolean
   tags: Tag[]
   due_date?: Date
+  start_time?: string
+  end_time?: string
   subtasks: Subtask[]
   backgroundColor: string
   borderStyle: TaskBorderStyle
