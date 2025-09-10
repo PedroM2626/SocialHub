@@ -737,3 +737,80 @@ export async function createConversation(conversation: any) {
     return null
   }
 }
+
+// Expose a function to sync local fallback data (tasks/desabafos) to Supabase
+export async function syncLocalToSupabase(userId?: string) {
+  console.log('[DB] syncLocalToSupabase start', { userId })
+  // Sync tasks
+  try {
+    const localTasks = readLocalTasks()
+    if (Array.isArray(localTasks) && localTasks.length > 0) {
+      console.log(`[DB] Found ${localTasks.length} local tasks to migrate`)
+      for (const t of localTasks) {
+        try {
+          const payload: any = { ...t }
+          if (userId) payload.user_id = userId
+          // Normalize dates
+          if (payload.due_date && payload.due_date instanceof Date)
+            payload.due_date = payload.due_date.toISOString()
+          // Try to create; if already exists, skip
+          try {
+            const { data: existing } = await withTimeout(
+              supabase.from('tasks').select('id').eq('id', payload.id).limit(1).single(),
+            )
+            if (existing && (existing as any).id) {
+              console.log('[DB] task exists, skipping', (existing as any).id)
+              continue
+            }
+          } catch (e) {
+            // ignore check errors and attempt create
+          }
+          await createTask(payload)
+        } catch (err) {
+          console.warn('[DB] failed to migrate task', t.id, err)
+        }
+      }
+      // remove local tasks after attempting migration
+      try {
+        localStorage.removeItem('local:tasks')
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[DB] syncLocalToSupabase tasks failed', err)
+  }
+
+  // Sync desabafos
+  try {
+    const localDesabafos = readLocalDesabafos()
+    if (Array.isArray(localDesabafos) && localDesabafos.length > 0) {
+      console.log(`[DB] Found ${localDesabafos.length} local desabafos to migrate`)
+      for (const d of localDesabafos) {
+        try {
+          const payload: any = { ...d }
+          if (!payload.user_id && userId) payload.user_id = userId
+          try {
+            const { data: existing } = await withTimeout(
+              supabase.from('desabafos').select('id').eq('id', payload.id).limit(1).single(),
+            )
+            if (existing && (existing as any).id) {
+              console.log('[DB] desabafo exists, skipping', (existing as any).id)
+              continue
+            }
+          } catch (e) {
+            // ignore check errors and attempt create
+          }
+          await createDesabafo(payload)
+        } catch (err) {
+          console.warn('[DB] failed to migrate desabafo', d.id, err)
+        }
+      }
+      try {
+        localStorage.removeItem('local:desabafos')
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[DB] syncLocalToSupabase desabafos failed', err)
+  }
+
+  console.log('[DB] syncLocalToSupabase complete')
+}
