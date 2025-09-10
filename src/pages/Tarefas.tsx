@@ -1121,12 +1121,18 @@ const Tarefas = () => {
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {u.date.toLocaleDateString()} • Vence em{' '}
-                                {Math.ceil(
-                                  (u.date.getTime() -
-                                    new Date().setHours(0, 0, 0, 0)) /
-                                    (1000 * 60 * 60 * 24),
-                                )}
-                                d
+                                {(() => {
+                                  const now = new Date()
+                                  const diffMs = u.date.getTime() - now.getTime()
+                                  if (notificationRangeUnit === 'hours')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                  if (notificationRangeUnit === 'months')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                  return `${Math.ceil(
+                                    (u.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                                      (1000 * 60 * 60 * 24),
+                                  )}d`
+                                })()}
                               </div>
                             </div>
                           </div>
