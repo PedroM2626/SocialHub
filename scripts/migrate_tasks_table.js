@@ -20,18 +20,24 @@ async function main() {
   ]
 
   for (const q of queries) {
-    const { error } = await supabase.rpc('sql', { q }).catch(() => ({ error: { message: 'rpc sql not available' } }))
+    const { error } = await supabase
+      .rpc('sql', { q })
+      .catch(() => ({ error: { message: 'rpc sql not available' } }))
     if (error) {
       // Fallback: try using query via postgrest
       try {
         await supabase.from('tasks').select('*').limit(1)
         // If select worked but rpc not available, attempt using direct SQL via the query endpoint is not available in supabase-js
-        console.warn('Could not run direct SQL via RPC. Please run the following SQL manually in your Supabase SQL editor:')
+        console.warn(
+          'Could not run direct SQL via RPC. Please run the following SQL manually in your Supabase SQL editor:',
+        )
         console.warn(queries.join('\n'))
         process.exit(1)
       } catch (e) {
         console.error('Error checking tasks table', e)
-        console.warn('Please run the following SQL manually in your Supabase SQL editor:')
+        console.warn(
+          'Please run the following SQL manually in your Supabase SQL editor:',
+        )
         console.warn(queries.join('\n'))
         process.exit(1)
       }

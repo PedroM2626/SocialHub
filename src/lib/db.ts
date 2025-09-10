@@ -16,7 +16,9 @@ let TASKS_HAS_USER_ID: boolean | null = null
 ;(async () => {
   try {
     // Try a lightweight select of user_id; if column missing, Postgres will error
-    const { data, error } = await withTimeout(supabase.from('tasks').select('user_id').limit(1))
+    const { data, error } = await withTimeout(
+      supabase.from('tasks').select('user_id').limit(1),
+    )
     if (error) {
       // assume missing column or no permissions; set flag false (no verbose DB error)
       TASKS_HAS_USER_ID = false
@@ -462,9 +464,13 @@ function errToString(err: any) {
 
 export async function getTasks(userId?: string): Promise<any[]> {
   try {
-    let query = supabase.from('tasks').select('*').order('id', { ascending: false })
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .order('id', { ascending: false })
     // Only apply user filter if DB has user_id column
-    if (userId && TASKS_HAS_USER_ID === true) query = query.eq('user_id', userId)
+    if (userId && TASKS_HAS_USER_ID === true)
+      query = query.eq('user_id', userId)
     const { data, error } = await withTimeout(query)
     if (error) throw error
     return data || []
@@ -505,7 +511,8 @@ export async function createTask(payload: any) {
     borderStyle: payload.borderStyle || null,
   }
   // Only include user_id if DB supports it
-  if (payload.user_id && TASKS_HAS_USER_ID === true) record.user_id = payload.user_id
+  if (payload.user_id && TASKS_HAS_USER_ID === true)
+    record.user_id = payload.user_id
 
   try {
     const { data, error } = await withTimeout(
@@ -528,7 +535,8 @@ export async function createTask(payload: any) {
 export async function updateTask(id: string, payload: any, userId?: string) {
   try {
     let query = supabase.from('tasks').update(payload).eq('id', id)
-    if (userId && TASKS_HAS_USER_ID === true) query = query.eq('user_id', userId)
+    if (userId && TASKS_HAS_USER_ID === true)
+      query = query.eq('user_id', userId)
     const { error } = await withTimeout(query)
     if (error) throw error
     return true
@@ -555,7 +563,8 @@ export async function updateTask(id: string, payload: any, userId?: string) {
 export async function deleteTask(id: string, userId?: string) {
   try {
     let query = supabase.from('tasks').delete().eq('id', id)
-    if (userId && TASKS_HAS_USER_ID === true) query = query.eq('user_id', userId)
+    if (userId && TASKS_HAS_USER_ID === true)
+      query = query.eq('user_id', userId)
     const { error } = await withTimeout(query)
     if (error) throw error
     return true

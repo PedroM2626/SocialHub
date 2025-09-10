@@ -84,8 +84,16 @@ const taskSchema = z.object({
     .min(10, { message: 'O título deve ter pelo menos 3 caracteres.' }),
   description: z.string().optional(),
   due_date: z.date().optional(),
-  start_time: z.string().regex(timeRegex, 'Formato HH:MM').optional().or(z.literal('')),
-  end_time: z.string().regex(timeRegex, 'Formato HH:MM').optional().or(z.literal('')),
+  start_time: z
+    .string()
+    .regex(timeRegex, 'Formato HH:MM')
+    .optional()
+    .or(z.literal('')),
+  end_time: z
+    .string()
+    .regex(timeRegex, 'Formato HH:MM')
+    .optional()
+    .or(z.literal('')),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   tags: z.array(tagSchema).optional(),
   subtasks: z.array(subtaskSchema).optional(),
@@ -417,7 +425,11 @@ export const CreateEditTaskForm = ({
               <FormItem>
                 <FormLabel>Início (opcional)</FormLabel>
                 <FormControl>
-                  <Input type="time" value={field.value || ''} onChange={field.onChange} />
+                  <Input
+                    type="time"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -430,7 +442,11 @@ export const CreateEditTaskForm = ({
               <FormItem>
                 <FormLabel>Fim (opcional)</FormLabel>
                 <FormControl>
-                  <Input type="time" value={field.value || ''} onChange={field.onChange} />
+                  <Input
+                    type="time"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -93,7 +93,14 @@ const Tarefas = () => {
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [events, setEvents] = useState<
-    { id: string; title: string; date: string; color?: string; start_time?: string; end_time?: string }[]
+    {
+      id: string
+      title: string
+      date: string
+      color?: string
+      start_time?: string
+      end_time?: string
+    }[]
   >(() => {
     try {
       const raw = localStorage.getItem('local:events')
@@ -144,19 +151,25 @@ const Tarefas = () => {
   })
 
   // notification range customizable (value + unit)
-  const [notificationRangeValue, setNotificationRangeValue] = useState<number>(() => {
+  const [notificationRangeValue, setNotificationRangeValue] = useState<number>(
+    () => {
+      try {
+        const stored = localStorage.getItem('local:notificationRangeValue')
+        if (stored) return parseInt(stored, 10)
+        const legacy = localStorage.getItem('local:notificationRangeDays')
+        return legacy ? parseInt(legacy, 10) : 7
+      } catch {
+        return 7
+      }
+    },
+  )
+  const [notificationRangeUnit, setNotificationRangeUnit] = useState<
+    'hours' | 'days' | 'months'
+  >(() => {
     try {
-      const stored = localStorage.getItem('local:notificationRangeValue')
-      if (stored) return parseInt(stored, 10)
-      const legacy = localStorage.getItem('local:notificationRangeDays')
-      return legacy ? parseInt(legacy, 10) : 7
-    } catch {
-      return 7
-    }
-  })
-  const [notificationRangeUnit, setNotificationRangeUnit] = useState<'hours' | 'days' | 'months'>(() => {
-    try {
-      return (localStorage.getItem('local:notificationRangeUnit') as any) || 'days'
+      return (
+        (localStorage.getItem('local:notificationRangeUnit') as any) || 'days'
+      )
     } catch {
       return 'days'
     }
@@ -177,7 +190,10 @@ const Tarefas = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('local:notificationRangeValue', String(notificationRangeValue))
+      localStorage.setItem(
+        'local:notificationRangeValue',
+        String(notificationRangeValue),
+      )
       localStorage.setItem('local:notificationRangeUnit', notificationRangeUnit)
     } catch {}
   }, [notificationRangeValue, notificationRangeUnit])
@@ -498,7 +514,11 @@ const Tarefas = () => {
 
   const handleMigrateLocalToSupabase = async () => {
     if (!userId) {
-      toast({ variant: 'destructive', title: 'Login necessário', description: 'Faça login antes de migrar tarefas.' })
+      toast({
+        variant: 'destructive',
+        title: 'Login necessário',
+        description: 'Faça login antes de migrar tarefas.',
+      })
       return
     }
 
@@ -507,12 +527,19 @@ const Tarefas = () => {
       raw = localStorage.getItem('local:tasks')
     } catch (e) {
       console.error('Failed to read local:tasks', e)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível acessar tarefas locais.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível acessar tarefas locais.',
+      })
       return
     }
 
     if (!raw) {
-      toast({ title: 'Nada a migrar', description: 'Nenhuma tarefa local encontrada.' })
+      toast({
+        title: 'Nada a migrar',
+        description: 'Nenhuma tarefa local encontrada.',
+      })
       return
     }
 
@@ -520,21 +547,34 @@ const Tarefas = () => {
     try {
       localTasks = JSON.parse(raw)
       if (!Array.isArray(localTasks) || localTasks.length === 0) {
-        toast({ title: 'Nada a migrar', description: 'Nenhuma tarefa local encontrada.' })
+        toast({
+          title: 'Nada a migrar',
+          description: 'Nenhuma tarefa local encontrada.',
+        })
         return
       }
     } catch (e) {
       console.error('Failed to parse local tasks', e)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Formato inválido das tarefas locais.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Formato inválido das tarefas locais.',
+      })
       return
     }
 
-    const results: { ok: boolean; id?: string; error?: any; localId?: string }[] = []
+    const results: {
+      ok: boolean
+      id?: string
+      error?: any
+      localId?: string
+    }[] = []
     for (const t of localTasks) {
       try {
         const payload: any = { ...t, user_id: userId }
         // Normalize due_date if it's a Date object string
-        if (payload.due_date && payload.due_date instanceof Date) payload.due_date = payload.due_date.toISOString()
+        if (payload.due_date && payload.due_date instanceof Date)
+          payload.due_date = payload.due_date.toISOString()
         const created = await createTask(payload)
         results.push({ ok: true, id: created?.id, localId: t.id })
       } catch (err) {
@@ -573,8 +613,13 @@ const Tarefas = () => {
     }
 
     if (failures.length === 0) {
-      try { localStorage.removeItem('local:tasks') } catch {}
-      toast({ title: 'Migração completa', description: `${successCount} tarefas migradas.` })
+      try {
+        localStorage.removeItem('local:tasks')
+      } catch {}
+      toast({
+        title: 'Migração completa',
+        description: `${successCount} tarefas migradas.`,
+      })
     } else {
       toast({
         variant: 'destructive',
@@ -824,13 +869,19 @@ const Tarefas = () => {
                   type="number"
                   min={1}
                   value={notificationRangeValue}
-                  onChange={(e) => setNotificationRangeValue(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                  onChange={(e) =>
+                    setNotificationRangeValue(
+                      Math.max(1, parseInt(e.target.value || '1', 10)),
+                    )
+                  }
                   className="rounded border px-2 py-1 bg-background text-sm w-20"
                 />
                 <select
                   aria-label="Unidade"
                   value={notificationRangeUnit}
-                  onChange={(e) => setNotificationRangeUnit(e.target.value as any)}
+                  onChange={(e) =>
+                    setNotificationRangeUnit(e.target.value as any)
+                  }
                   className="rounded border px-2 py-1 bg-background text-sm w-full sm:w-auto"
                 >
                   <option value="hours">horas</option>
@@ -966,10 +1017,14 @@ const Tarefas = () => {
                 <ul className="mt-2 space-y-2">
                   {tasksDueOnSelectedDate.map((t) => {
                     const target = (() => {
-                      const base = t.due_date ? new Date(t.due_date as any) : null
+                      const base = t.due_date
+                        ? new Date(t.due_date as any)
+                        : null
                       if (!base) return null
                       if ((t as any).start_time) {
-                        const [hh, mm] = (t as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                        const [hh, mm] = (t as any).start_time
+                          .split(':')
+                          .map((n: string) => parseInt(n, 10))
                         const dt = new Date(base)
                         dt.setHours(hh, mm, 0, 0)
                         return dt
@@ -991,7 +1046,8 @@ const Tarefas = () => {
                           (1000 * 60 * 60 * 24),
                       )
                     })()
-                    const within = remaining <= notificationRangeValue && remaining >= 0
+                    const within =
+                      remaining <= notificationRangeValue && remaining >= 0
                     return (
                       <li
                         key={t.id}
@@ -1060,7 +1116,9 @@ const Tarefas = () => {
                       const target = (() => {
                         const base = new Date(e.date)
                         if ((e as any).start_time) {
-                          const [hh, mm] = (e as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                          const [hh, mm] = (e as any).start_time
+                            .split(':')
+                            .map((n: string) => parseInt(n, 10))
                           const dt = new Date(base)
                           dt.setHours(hh, mm, 0, 0)
                           return dt
@@ -1081,7 +1139,8 @@ const Tarefas = () => {
                             (1000 * 60 * 60 * 24),
                         )
                       })()
-                      const within = remaining <= notificationRangeValue && remaining >= 0
+                      const within =
+                        remaining <= notificationRangeValue && remaining >= 0
                       return (
                         <li
                           key={e.id}
@@ -1152,7 +1211,9 @@ const Tarefas = () => {
                       const base = new Date(t.due_date as any)
                       const dt = new Date(base)
                       if ((t as any).start_time) {
-                        const [hh, mm] = (t as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                        const [hh, mm] = (t as any).start_time
+                          .split(':')
+                          .map((n: string) => parseInt(n, 10))
                         dt.setHours(hh, mm, 0, 0)
                       } else {
                         dt.setHours(0, 0, 0, 0)
@@ -1168,7 +1229,9 @@ const Tarefas = () => {
                     const base = new Date(e.date)
                     const dt = new Date(base)
                     if ((e as any).start_time) {
-                      const [hh, mm] = (e as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                      const [hh, mm] = (e as any).start_time
+                        .split(':')
+                        .map((n: string) => parseInt(n, 10))
                       dt.setHours(hh, mm, 0, 0)
                     } else {
                       dt.setHours(0, 0, 0, 0)
@@ -1189,11 +1252,12 @@ const Tarefas = () => {
                       notificationRangeUnit === 'hours'
                         ? Math.ceil(diffMs / (1000 * 60 * 60))
                         : notificationRangeUnit === 'months'
-                        ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
-                        : Math.ceil(
-                            (item.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
-                              (1000 * 60 * 60 * 24),
-                          )
+                          ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                          : Math.ceil(
+                              (item.date.getTime() -
+                                new Date().setHours(0, 0, 0, 0)) /
+                                (1000 * 60 * 60 * 24),
+                            )
                     return remaining <= notificationRangeValue && remaining >= 0
                   })
                   .sort((a, b) => +a.date - +b.date)
@@ -1233,13 +1297,15 @@ const Tarefas = () => {
                                 {u.date.toLocaleDateString()} • Vence em{' '}
                                 {(() => {
                                   const now = new Date()
-                                  const diffMs = u.date.getTime() - now.getTime()
+                                  const diffMs =
+                                    u.date.getTime() - now.getTime()
                                   if (notificationRangeUnit === 'hours')
                                     return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
                                   if (notificationRangeUnit === 'months')
                                     return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
                                   return `${Math.ceil(
-                                    (u.date.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                                    (u.date.getTime() -
+                                      new Date().setHours(0, 0, 0, 0)) /
                                       (1000 * 60 * 60 * 24),
                                   )}d`
                                 })()}
@@ -1325,11 +1391,19 @@ const Tarefas = () => {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Início (opcional)</Label>
-                <UiInput type="time" value={createEventStartTime} onChange={(e) => setCreateEventStartTime(e.target.value)} />
+                <UiInput
+                  type="time"
+                  value={createEventStartTime}
+                  onChange={(e) => setCreateEventStartTime(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Fim (opcional)</Label>
-                <UiInput type="time" value={createEventEndTime} onChange={(e) => setCreateEventEndTime(e.target.value)} />
+                <UiInput
+                  type="time"
+                  value={createEventEndTime}
+                  onChange={(e) => setCreateEventEndTime(e.target.value)}
+                />
               </div>
             </div>
             <div className="flex justify-end">
@@ -1412,7 +1486,10 @@ const Tarefas = () => {
                     type="time"
                     value={(editingEvent.start_time as any) || ''}
                     onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, start_time: e.target.value })
+                      setEditingEvent({
+                        ...editingEvent,
+                        start_time: e.target.value,
+                      })
                     }
                   />
                 </div>
@@ -1422,7 +1499,10 @@ const Tarefas = () => {
                     type="time"
                     value={(editingEvent.end_time as any) || ''}
                     onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, end_time: e.target.value })
+                      setEditingEvent({
+                        ...editingEvent,
+                        end_time: e.target.value,
+                      })
                     }
                   />
                 </div>

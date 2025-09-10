@@ -31,7 +31,9 @@ async function main() {
   }
 
   // list tasks count
-  const { data: allTasks, error: tErr } = await supabase.from('tasks').select('*')
+  const { data: allTasks, error: tErr } = await supabase
+    .from('tasks')
+    .select('*')
   if (tErr) {
     console.error('Error fetching tasks:', tErr)
     process.exit(1)
