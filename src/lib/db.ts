@@ -18,13 +18,13 @@ let TASKS_HAS_USER_ID: boolean | null = null
     // Try a lightweight select of user_id; if column missing, Postgres will error
     const { data, error } = await withTimeout(supabase.from('tasks').select('user_id').limit(1))
     if (error) {
-      console.warn('tasks.user_id detection query returned error:', error)
+      // assume missing column or no permissions; set flag false (no verbose DB error)
       TASKS_HAS_USER_ID = false
     } else {
       TASKS_HAS_USER_ID = true
     }
-  } catch (e) {
-    console.warn('tasks.user_id detection failed:', e)
+  } catch (_e) {
+    // assume missing column or network issue
     TASKS_HAS_USER_ID = false
   }
 })()
