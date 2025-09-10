@@ -425,8 +425,12 @@ const Tarefas = () => {
           if (imported.dateColors) setDateColors(imported.dateColors)
           if (imported.highlightColor)
             setHighlightColor(imported.highlightColor)
-          if (imported.notificationRangeDays)
-            setNotificationRangeDays(imported.notificationRangeDays)
+          if (typeof imported.notificationRangeValue === 'number')
+            setNotificationRangeValue(imported.notificationRangeValue)
+          else if (imported.notificationRangeDays)
+            setNotificationRangeValue(imported.notificationRangeDays)
+          if (imported.notificationRangeUnit)
+            setNotificationRangeUnit(imported.notificationRangeUnit)
 
           try {
             localStorage.setItem(
