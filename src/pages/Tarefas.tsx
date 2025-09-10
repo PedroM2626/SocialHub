@@ -59,6 +59,8 @@ const Tarefas = () => {
             is_public: r.is_public !== undefined ? r.is_public : true,
             tags: r.tags || [],
             due_date: r.due_date || null,
+            start_time: r.start_time || '',
+            end_time: r.end_time || '',
             subtasks: r.subtasks || [],
             attachments: r.attachments || [],
             backgroundColor: r.backgroundColor || null,
@@ -290,7 +292,7 @@ const Tarefas = () => {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi poss��vel excluir a tarefa.',
+        description: 'Não foi possível excluir a tarefa.',
       })
     }
   }
