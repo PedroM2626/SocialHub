@@ -111,6 +111,8 @@ const Tarefas = () => {
     title: string
     date: string
     color?: string
+    start_time?: string
+    end_time?: string
   } | null>(null)
   const [isEditEventOpen, setIsEditEventOpen] = useState(false)
 
