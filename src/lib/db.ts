@@ -456,6 +456,8 @@ export async function createTask(payload: any) {
     is_public: payload.is_public !== undefined ? payload.is_public : true,
     tags: payload.tags || [],
     due_date: payload.due_date || null,
+    start_time: payload.start_time || null,
+    end_time: payload.end_time || null,
     subtasks: payload.subtasks || [],
     backgroundColor: payload.backgroundColor || null,
     borderStyle: payload.borderStyle || null,
