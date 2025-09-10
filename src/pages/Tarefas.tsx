@@ -947,13 +947,31 @@ const Tarefas = () => {
                         selectedDate?.toDateString(),
                     )
                     .map((e) => {
-                      const daysUntil = Math.ceil(
-                        (new Date(e.date).getTime() -
-                          new Date().setHours(0, 0, 0, 0)) /
-                          (1000 * 60 * 60 * 24),
-                      )
-                      const within =
-                        daysUntil <= notificationRangeDays && daysUntil >= 0
+                      const target = (() => {
+                        const base = new Date(e.date)
+                        if ((e as any).start_time) {
+                          const [hh, mm] = (e as any).start_time.split(':').map((n: string) => parseInt(n, 10))
+                          const dt = new Date(base)
+                          dt.setHours(hh, mm, 0, 0)
+                          return dt
+                        }
+                        const dt = new Date(base)
+                        dt.setHours(0, 0, 0, 0)
+                        return dt
+                      })()
+                      const now = new Date()
+                      const remaining = (() => {
+                        const diffMs = target.getTime() - now.getTime()
+                        if (notificationRangeUnit === 'hours')
+                          return Math.ceil(diffMs / (1000 * 60 * 60))
+                        if (notificationRangeUnit === 'months')
+                          return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                        return Math.ceil(
+                          (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                            (1000 * 60 * 60 * 24),
+                        )
+                      })()
+                      const within = remaining <= notificationRangeValue && remaining >= 0
                       return (
                         <li
                           key={e.id}
