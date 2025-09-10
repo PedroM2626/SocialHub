@@ -518,6 +518,8 @@ const Tarefas = () => {
       title: eventTitle,
       date: selectedDate.toISOString(),
       color: defaultColor,
+      start_time: createEventStartTime || '',
+      end_time: createEventEndTime || '',
     }
     const next = [newEvent, ...events]
     setEvents(next)
