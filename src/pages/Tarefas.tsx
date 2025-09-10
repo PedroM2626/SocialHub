@@ -1297,6 +1297,28 @@ const Tarefas = () => {
                   setEditingEvent({ ...editingEvent, color: e.target.value })
                 }
               />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Início (opcional)</Label>
+                  <UiInput
+                    type="time"
+                    value={(editingEvent.start_time as any) || ''}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, start_time: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Fim (opcional)</Label>
+                  <UiInput
+                    type="time"
+                    value={(editingEvent.end_time as any) || ''}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, end_time: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button
                   variant="destructive"
