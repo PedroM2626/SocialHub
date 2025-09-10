@@ -41,15 +41,17 @@ import { Task, Subtask } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const Tarefas = () => {
+  const { user } = useAuth()
+  const userId = user?.id
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
 
-  // load remote tasks if available
+  // load remote tasks for current user
   useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
-        const remote = await getTasks()
-        if (mounted && remote.length > 0) {
+        const remote = await getTasks(userId)
+        if (mounted) {
           const mapped = remote.map((r: any) => ({
             id: r.id,
             title: r.title,
@@ -72,13 +74,15 @@ const Tarefas = () => {
           return
         }
       } catch (err) {
-        console.warn('Failed to load tasks from DB, falling back to mock', err)
+        console.warn('Failed to load tasks from DB', err)
+        // set to empty list to avoid showing mock placeholders
+        if (mounted) setTasks([])
       }
     })()
     return () => {
       mounted = false
     }
-  }, [])
+  }, [userId])
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState<Partial<TaskFilterValues>>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
