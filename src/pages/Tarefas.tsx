@@ -194,6 +194,8 @@ const Tarefas = () => {
       is_public: false,
       tags: data.tags || [],
       due_date: data.due_date,
+      start_time: (data as any).start_time || '',
+      end_time: (data as any).end_time || '',
       subtasks: (data.subtasks as Subtask[]) || [],
       attachments: newAttachments,
       backgroundColor: data.backgroundColor,
