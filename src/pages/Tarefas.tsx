@@ -86,7 +86,7 @@ const Tarefas = () => {
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [events, setEvents] = useState<
-    { id: string; title: string; date: string; color?: string }[]
+    { id: string; title: string; date: string; color?: string; start_time?: string; end_time?: string }[]
   >(() => {
     try {
       const raw = localStorage.getItem('local:events')
