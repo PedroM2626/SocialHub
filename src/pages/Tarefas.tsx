@@ -215,7 +215,7 @@ const Tarefas = () => {
     setIsCreateModalOpen(false)
 
     try {
-      const created = await createTask(newTask)
+      const created = await createTask({ ...newTask, user_id: userId })
       if (!created) throw new Error('Failed to persist task')
       // replace id if backend returned different
       setTasks((prev) =>
