@@ -11,6 +11,24 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
   ])
 }
 
+// Runtime feature detection: check if tasks.user_id column exists
+let TASKS_HAS_USER_ID: boolean | null = null
+;(async () => {
+  try {
+    // Try a lightweight select of user_id; if column missing, Postgres will error
+    const { data, error } = await withTimeout(supabase.from('tasks').select('user_id').limit(1))
+    if (error) {
+      console.warn('tasks.user_id detection query returned error:', error)
+      TASKS_HAS_USER_ID = false
+    } else {
+      TASKS_HAS_USER_ID = true
+    }
+  } catch (e) {
+    console.warn('tasks.user_id detection failed:', e)
+    TASKS_HAS_USER_ID = false
+  }
+})()
+
 export async function getUsers(): Promise<User[]> {
   try {
     const { data, error } = await withTimeout(
