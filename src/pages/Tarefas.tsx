@@ -528,6 +528,8 @@ const Tarefas = () => {
     } catch {}
     setEventTitle('')
     setCreateEventColor(undefined)
+    setCreateEventStartTime('')
+    setCreateEventEndTime('')
     setIsCreateEventOpen(false)
     toast({ title: 'Evento criado', description: 'Seu evento foi agendado.' })
   }
