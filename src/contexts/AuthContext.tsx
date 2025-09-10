@@ -105,6 +105,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('socialhub_session', JSON.stringify(newSession))
       setUser(foundUser)
       setSession(newSession)
+      try {
+        syncLocalToSupabase(foundUser.id).catch((e) =>
+          console.warn('[Auth] syncLocalToSupabase failed', e),
+        )
+      } catch (e) {}
       console.log('[Auth] login success, navigating')
       navigate('/')
     } else {
