@@ -11,23 +11,30 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
   ])
 }
 
-// Runtime feature detection: check if tasks.user_id column exists
+// Runtime feature detection: check if tasks.user_id, backgroundColor and borderStyle columns exist
 let TASKS_HAS_USER_ID: boolean | null = null
+let TASKS_HAS_BACKGROUND_COLOR: boolean | null = null
+let TASKS_HAS_BORDER_STYLE: boolean | null = null
 ;(async () => {
   try {
-    // Try a lightweight select of user_id; if column missing, Postgres will error
-    const { data, error } = await withTimeout(
-      supabase.from('tasks').select('user_id').limit(1),
-    )
-    if (error) {
-      // assume missing column or no permissions; set flag false (no verbose DB error)
-      TASKS_HAS_USER_ID = false
-    } else {
-      TASKS_HAS_USER_ID = true
-    }
+    // Try lightweight selects; if column missing, Postgres will error
+    const checks = await Promise.allSettled([
+      withTimeout(supabase.from('tasks').select('user_id').limit(1)),
+      withTimeout(supabase.from('tasks').select('backgroundColor').limit(1)),
+      withTimeout(supabase.from('tasks').select('borderStyle').limit(1)),
+    ])
+
+    TASKS_HAS_USER_ID =
+      checks[0].status === 'fulfilled' && !(checks[0] as any).value?.error
+    TASKS_HAS_BACKGROUND_COLOR =
+      checks[1].status === 'fulfilled' && !(checks[1] as any).value?.error
+    TASKS_HAS_BORDER_STYLE =
+      checks[2].status === 'fulfilled' && !(checks[2] as any).value?.error
   } catch (_e) {
     // assume missing column or network issue
-    TASKS_HAS_USER_ID = false
+    TASKS_HAS_USER_ID = TASKS_HAS_USER_ID ?? false
+    TASKS_HAS_BACKGROUND_COLOR = TASKS_HAS_BACKGROUND_COLOR ?? false
+    TASKS_HAS_BORDER_STYLE = TASKS_HAS_BORDER_STYLE ?? false
   }
 })()
 
@@ -507,12 +514,14 @@ export async function createTask(payload: any) {
     start_time: payload.start_time || null,
     end_time: payload.end_time || null,
     subtasks: payload.subtasks || [],
-    backgroundColor: payload.backgroundColor || null,
-    borderStyle: payload.borderStyle || null,
   }
+
   // Only include user_id if DB supports it
-  if (payload.user_id && TASKS_HAS_USER_ID === true)
-    record.user_id = payload.user_id
+  if (payload.user_id && TASKS_HAS_USER_ID === true) record.user_id = payload.user_id
+
+  // Only include backgroundColor and borderStyle if DB supports those columns
+  if (TASKS_HAS_BACKGROUND_COLOR === true) record.backgroundColor = payload.backgroundColor || null
+  if (TASKS_HAS_BORDER_STYLE === true) record.borderStyle = payload.borderStyle || null
 
   try {
     const { data, error } = await withTimeout(
@@ -534,9 +543,15 @@ export async function createTask(payload: any) {
 
 export async function updateTask(id: string, payload: any, userId?: string) {
   try {
-    let query = supabase.from('tasks').update(payload).eq('id', id)
-    if (userId && TASKS_HAS_USER_ID === true)
-      query = query.eq('user_id', userId)
+    // Sanitize payload for optional columns to avoid DB errors when columns are absent
+    const sanitized: any = { ...payload }
+    if (TASKS_HAS_BACKGROUND_COLOR !== true && 'backgroundColor' in sanitized)
+      delete sanitized.backgroundColor
+    if (TASKS_HAS_BORDER_STYLE !== true && 'borderStyle' in sanitized)
+      delete sanitized.borderStyle
+
+    let query = supabase.from('tasks').update(sanitized).eq('id', id)
+    if (userId && TASKS_HAS_USER_ID === true) query = query.eq('user_id', userId)
     const { error } = await withTimeout(query)
     if (error) throw error
     return true
