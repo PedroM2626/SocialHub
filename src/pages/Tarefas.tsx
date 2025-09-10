@@ -102,6 +102,8 @@ const Tarefas = () => {
   const [createEventColor, setCreateEventColor] = useState<string | undefined>(
     undefined,
   )
+  const [createEventStartTime, setCreateEventStartTime] = useState<string>('')
+  const [createEventEndTime, setCreateEventEndTime] = useState<string>('')
 
   // edit task modal state (for calendar-day edits)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
