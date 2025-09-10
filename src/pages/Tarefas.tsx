@@ -715,6 +715,14 @@ const Tarefas = () => {
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMigrateLocalToSupabase}
+            className="w-full sm:w-auto"
+          >
+            <Upload className="mr-2 h-4 w-4" /> Migrar locais → Supabase
+          </Button>
+          <Button
             onClick={() => setIsCreateModalOpen(true)}
             size="sm"
             className="w-full sm:w-auto"
