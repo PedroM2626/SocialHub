@@ -134,15 +134,22 @@ const Tarefas = () => {
     }
   })
 
-  // notification range (days) persisted
-  const [notificationRangeDays, setNotificationRangeDays] = useState(() => {
+  // notification range customizable (value + unit)
+  const [notificationRangeValue, setNotificationRangeValue] = useState<number>(() => {
     try {
-      return parseInt(
-        localStorage.getItem('local:notificationRangeDays') || '7',
-        10,
-      )
+      const stored = localStorage.getItem('local:notificationRangeValue')
+      if (stored) return parseInt(stored, 10)
+      const legacy = localStorage.getItem('local:notificationRangeDays')
+      return legacy ? parseInt(legacy, 10) : 7
     } catch {
       return 7
+    }
+  })
+  const [notificationRangeUnit, setNotificationRangeUnit] = useState<'hours' | 'days' | 'months'>(() => {
+    try {
+      return (localStorage.getItem('local:notificationRangeUnit') as any) || 'days'
+    } catch {
+      return 'days'
     }
   })
 
