@@ -168,12 +168,10 @@ const Tarefas = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem(
-        'local:notificationRangeDays',
-        String(notificationRangeDays),
-      )
+      localStorage.setItem('local:notificationRangeValue', String(notificationRangeValue))
+      localStorage.setItem('local:notificationRangeUnit', notificationRangeUnit)
     } catch {}
-  }, [notificationRangeDays])
+  }, [notificationRangeValue, notificationRangeUnit])
 
   const handleCreateTask = async (data: TaskFormValues) => {
     const newAttachments =
@@ -292,7 +290,7 @@ const Tarefas = () => {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Não foi possível excluir a tarefa.',
+        description: 'Não foi poss��vel excluir a tarefa.',
       })
     }
   }
