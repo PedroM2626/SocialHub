@@ -431,24 +431,23 @@ function writeLocalTasks(items: any[]) {
 }
 
 // Tasks persistence
-export async function getTasks(): Promise<any[]> {
+export async function getTasks(userId?: string): Promise<any[]> {
   try {
-    const { data, error } = await withTimeout(
-      supabase.from('tasks').select('*').order('id', { ascending: false }),
-    )
+    let query = supabase.from('tasks').select('*').order('id', { ascending: false })
+    if (userId) query = query.eq('user_id', userId)
+    const { data, error } = await withTimeout(query)
     if (error) throw error
-    const remote = data || []
-    const local = readLocalTasks()
-    return [...local, ...remote]
+    return data || []
   } catch (err) {
-    console.warn('getTasks failed, returning local fallback', err)
-    return readLocalTasks()
+    console.error('getTasks failed', err)
+    return []
   }
 }
 
 export async function createTask(payload: any) {
   const record = {
     id: payload.id || `task-${Date.now()}`,
+    user_id: payload.user_id || null,
     title: payload.title,
     description: payload.description || null,
     is_completed: payload.is_completed || false,
@@ -463,65 +462,39 @@ export async function createTask(payload: any) {
     borderStyle: payload.borderStyle || null,
   }
 
-  try {
-    const { data, error } = await withTimeout(
-      supabase.from('tasks').insert(record).select().single(),
-    )
-    if (error) throw error
-    return data
-  } catch (err) {
-    console.warn('createTask failed, saving locally as fallback', err)
-    try {
-      const current = readLocalTasks()
-      const next = [record, ...current]
-      writeLocalTasks(next)
-      return record
-    } catch (e) {
-      console.error('local createTask failed', e)
-      return null
-    }
+  const { data, error } = await withTimeout(
+    supabase.from('tasks').insert(record).select().single(),
+  )
+  if (error) {
+    console.error('createTask failed', error)
+    throw error
   }
+  return data
 }
 
-export async function updateTask(id: string, payload: any) {
+export async function updateTask(id: string, payload: any, userId?: string) {
   try {
-    const { error } = await withTimeout(
-      supabase.from('tasks').update(payload).eq('id', id),
-    )
+    let query = supabase.from('tasks').update(payload).eq('id', id)
+    if (userId) query = query.eq('user_id', userId)
+    const { error } = await withTimeout(query)
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('updateTask failed, applying local fallback', err)
-    try {
-      const current = readLocalTasks()
-      const next = current.map((t) => (t.id === id ? { ...t, ...payload } : t))
-      writeLocalTasks(next)
-      return true
-    } catch (e) {
-      console.error('local updateTask failed', e)
-      return false
-    }
+    console.error('updateTask failed', err)
+    throw err
   }
 }
 
-export async function deleteTask(id: string) {
+export async function deleteTask(id: string, userId?: string) {
   try {
-    const { error } = await withTimeout(
-      supabase.from('tasks').delete().eq('id', id),
-    )
+    let query = supabase.from('tasks').delete().eq('id', id)
+    if (userId) query = query.eq('user_id', userId)
+    const { error } = await withTimeout(query)
     if (error) throw error
     return true
   } catch (err) {
-    console.warn('deleteTask failed, applying local fallback', err)
-    try {
-      const current = readLocalTasks()
-      const next = current.filter((t) => t.id !== id)
-      writeLocalTasks(next)
-      return true
-    } catch (e) {
-      console.error('local deleteTask failed', e)
-      return false
-    }
+    console.error('deleteTask failed', err)
+    throw err
   }
 }
 
