@@ -452,9 +452,18 @@ const Tarefas = () => {
           } catch {}
           try {
             localStorage.setItem(
-              'local:notificationRangeDays',
-              String(imported.notificationRangeDays || notificationRangeDays),
+              'local:notificationRangeValue',
+              String(
+                imported.notificationRangeValue ||
+                  imported.notificationRangeDays ||
+                  notificationRangeValue,
+              ),
             )
+            if (imported.notificationRangeUnit)
+              localStorage.setItem(
+                'local:notificationRangeUnit',
+                imported.notificationRangeUnit,
+              )
           } catch {}
 
           toast({ title: 'Sucesso!', description: 'Dados importados.' })
