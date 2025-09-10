@@ -431,6 +431,17 @@ function writeLocalTasks(items: any[]) {
 }
 
 // Tasks persistence
+function errToString(err: any) {
+  try {
+    if (!err) return String(err)
+    if (typeof err === 'string') return err
+    if (err.message) return err.message
+    return JSON.stringify(err)
+  } catch (e) {
+    return String(err)
+  }
+}
+
 export async function getTasks(userId?: string): Promise<any[]> {
   try {
     let query = supabase.from('tasks').select('*').order('id', { ascending: false })
@@ -439,15 +450,28 @@ export async function getTasks(userId?: string): Promise<any[]> {
     if (error) throw error
     return data || []
   } catch (err) {
-    console.error('getTasks failed', err)
+    const msg = errToString(err)
+    console.error('getTasks failed', msg)
+    // If failure due to missing user_id column, retry without user filter
+    if (userId && /column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      try {
+        const { data, error } = await withTimeout(
+          supabase.from('tasks').select('*').order('id', { ascending: false }),
+        )
+        if (error) throw error
+        return data || []
+      } catch (err2) {
+        console.error('getTasks retry failed', errToString(err2))
+        return []
+      }
+    }
     return []
   }
 }
 
 export async function createTask(payload: any) {
-  const record = {
+  const record: any = {
     id: payload.id || `task-${Date.now()}`,
-    user_id: payload.user_id || null,
     title: payload.title,
     description: payload.description || null,
     is_completed: payload.is_completed || false,
@@ -461,15 +485,24 @@ export async function createTask(payload: any) {
     backgroundColor: payload.backgroundColor || null,
     borderStyle: payload.borderStyle || null,
   }
+  if (payload.user_id) record.user_id = payload.user_id
 
-  const { data, error } = await withTimeout(
-    supabase.from('tasks').insert(record).select().single(),
-  )
-  if (error) {
-    console.error('createTask failed', error)
-    throw error
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('tasks').insert(record).select().single(),
+    )
+    if (error) throw error
+    return data
+  } catch (err) {
+    const msg = errToString(err)
+    console.error('createTask failed', msg)
+    if (/column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      throw new Error(
+        'createTask failed: database missing user_id column. Run migration to add user_id column.',
+      )
+    }
+    throw err
   }
-  return data
 }
 
 export async function updateTask(id: string, payload: any, userId?: string) {
@@ -480,7 +513,21 @@ export async function updateTask(id: string, payload: any, userId?: string) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('updateTask failed', err)
+    const msg = errToString(err)
+    console.error('updateTask failed', msg)
+    if (userId && /column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      // retry without user filter
+      try {
+        const { error } = await withTimeout(
+          supabase.from('tasks').update(payload).eq('id', id),
+        )
+        if (error) throw error
+        return true
+      } catch (err2) {
+        console.error('updateTask retry failed', errToString(err2))
+        throw err2
+      }
+    }
     throw err
   }
 }
@@ -493,7 +540,20 @@ export async function deleteTask(id: string, userId?: string) {
     if (error) throw error
     return true
   } catch (err) {
-    console.error('deleteTask failed', err)
+    const msg = errToString(err)
+    console.error('deleteTask failed', msg)
+    if (userId && /column\s+"?user_id"?\s+does not exist/i.test(msg)) {
+      try {
+        const { error } = await withTimeout(
+          supabase.from('tasks').delete().eq('id', id),
+        )
+        if (error) throw error
+        return true
+      } catch (err2) {
+        console.error('deleteTask retry failed', errToString(err2))
+        throw err2
+      }
+    }
     throw err
   }
 }
