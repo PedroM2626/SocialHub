@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label'
 import { Input as UiInput } from '@/components/ui/input'
 import { tasks as mockTasks } from '@/lib/mock-data'
 import { TaskCard } from '@/components/tasks/TaskCard'
-import { getTasks, createTask, updateTask, deleteTask } from '@/lib/db'
+import { getTasks, createTask, updateTask, deleteTask, syncLocalToSupabase } from '@/lib/db'
 import {
   Popover,
   PopoverContent,
