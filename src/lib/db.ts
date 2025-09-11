@@ -11,10 +11,11 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
   ])
 }
 
-// Runtime feature detection: check if tasks.user_id, backgroundColor and borderStyle columns exist
+// Runtime feature detection: check if tasks.user_id, backgroundColor, borderStyle and attachments columns exist
 let TASKS_HAS_USER_ID: boolean | null = null
 let TASKS_HAS_BACKGROUND_COLOR: boolean | null = null
 let TASKS_HAS_BORDER_STYLE: boolean | null = null
+let TASKS_HAS_ATTACHMENTS: boolean | null = null
 ;(async () => {
   try {
     // Try lightweight selects; if column missing, Postgres will error
@@ -22,6 +23,7 @@ let TASKS_HAS_BORDER_STYLE: boolean | null = null
       withTimeout(supabase.from('tasks').select('user_id').limit(1)),
       withTimeout(supabase.from('tasks').select('backgroundColor').limit(1)),
       withTimeout(supabase.from('tasks').select('borderStyle').limit(1)),
+      withTimeout(supabase.from('tasks').select('attachments').limit(1)),
     ])
 
     TASKS_HAS_USER_ID =
@@ -30,11 +32,14 @@ let TASKS_HAS_BORDER_STYLE: boolean | null = null
       checks[1].status === 'fulfilled' && !(checks[1] as any).value?.error
     TASKS_HAS_BORDER_STYLE =
       checks[2].status === 'fulfilled' && !(checks[2] as any).value?.error
+    TASKS_HAS_ATTACHMENTS =
+      checks[3].status === 'fulfilled' && !(checks[3] as any).value?.error
   } catch (_e) {
     // assume missing column or network issue
     TASKS_HAS_USER_ID = TASKS_HAS_USER_ID ?? false
     TASKS_HAS_BACKGROUND_COLOR = TASKS_HAS_BACKGROUND_COLOR ?? false
     TASKS_HAS_BORDER_STYLE = TASKS_HAS_BORDER_STYLE ?? false
+    TASKS_HAS_ATTACHMENTS = TASKS_HAS_ATTACHMENTS ?? false
   }
 })()
 
