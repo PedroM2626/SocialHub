@@ -226,13 +226,22 @@ const Tarefas = () => {
 
   // helper to normalize and persist events
   function saveEvents(next: any[]) {
+    // Ensure we never store Date objects and always persist as YYYY-MM-DD strings
     const normalized = next.map((ev: any) => ({
-      ...ev,
-      date: normalizeEventDate(ev.date) || ev.date,
+      id: ev.id,
+      title: ev.title,
+      date: normalizeEventDate(ev.date) || String(ev.date || ''),
+      color: ev.color || undefined,
+      start_time: ev.start_time || '',
+      end_time: ev.end_time || '',
     }))
     try {
       localStorage.setItem('local:events', JSON.stringify(normalized))
-    } catch {}
+      // also keep console log for debugging persistence issues
+      console.debug('[Tarefas] saveEvents persisted', normalized)
+    } catch (e) {
+      console.error('[Tarefas] saveEvents failed to persist', e)
+    }
     setEvents(normalized)
   }
 
