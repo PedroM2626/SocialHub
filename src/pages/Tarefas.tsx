@@ -1249,17 +1249,8 @@ const Tarefas = () => {
                               size="sm"
                               variant="destructive"
                               onClick={() => {
-                                const prev = events
-                                const next = events.filter(
-                                  (ev) => ev.id !== e.id,
-                                )
-                                setEvents(next)
-                                try {
-                                  localStorage.setItem(
-                                    'local:events',
-                                    JSON.stringify(next),
-                                  )
-                                } catch {}
+                                const next = events.filter((ev) => ev.id !== e.id)
+                                saveEvents(next)
                                 // no backend persistence required
                               }}
                             >
