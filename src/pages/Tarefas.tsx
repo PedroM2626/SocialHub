@@ -1597,13 +1597,8 @@ const Tarefas = () => {
                 </Button>
                 <Button
                   onClick={() => {
-                    const next = events.map((ev) =>
-                      ev.id === editingEvent.id ? editingEvent : ev,
-                    )
-                    setEvents(next)
-                    try {
-                      localStorage.setItem('local:events', JSON.stringify(next))
-                    } catch {}
+                    const next = events.map((ev) => (ev.id === editingEvent.id ? editingEvent : ev))
+                    saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)
                   }}
