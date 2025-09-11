@@ -571,6 +571,8 @@ export async function updateTask(id: string, payload: any, userId?: string) {
     if (TASKS_HAS_BORDER_STYLE !== true && 'borderStyle' in sanitized)
       delete sanitized.borderStyle
     if (TASKS_HAS_ATTACHMENTS !== true && 'attachments' in sanitized) delete sanitized.attachments
+    if (TASKS_HAS_TITLE_ALIGNMENT !== true && 'titleAlignment' in sanitized) delete sanitized.titleAlignment
+    if (TASKS_HAS_DESCRIPTION_ALIGNMENT !== true && 'descriptionAlignment' in sanitized) delete sanitized.descriptionAlignment
 
     let query = supabase.from('tasks').update(sanitized).eq('id', id)
     if (userId && TASKS_HAS_USER_ID === true) query = query.eq('user_id', userId)
