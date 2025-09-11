@@ -772,7 +772,7 @@ const Tarefas = () => {
     const newEvent = {
       id: `evt-${Date.now()}`,
       title: eventTitle,
-      date: selectedDate.toISOString(),
+      date: normalizeEventDate(selectedDate)!,
       color: defaultColor,
       start_time: createEventStartTime || '',
       end_time: createEventEndTime || '',
