@@ -274,7 +274,7 @@ const Tarefas = () => {
       const seen: Record<string, any> = {}
       const final: any[] = []
       for (const ev of deduped) {
-        const key = `${ev.title?.toLowerCase() || ''}::${new Date(ev.date).toDateString()}`
+        const key = `${ev.title?.toLowerCase() || ''}::${parseEventDate(ev.date)?.toDateString() || String(ev.date)}`
         if (!seen[key]) {
           seen[key] = true
           final.push(ev)
@@ -290,6 +290,27 @@ const Tarefas = () => {
       } catch (e) {}
     } catch (err) {
       console.warn('[Tarefas] one-time event migration failed', err)
+    }
+  }, [])
+
+  // Ensure events are loaded from localStorage on mount if current state is empty
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('local:events')
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      // If current events are empty (e.g., due to earlier errors), restore from storage
+      if (!events || events.length === 0) {
+        const normalized = parsed.map((ev: any) => ({
+          ...ev,
+          date: normalizeEventDate(ev.date) || ev.date,
+        }))
+        setEvents(normalized)
+        console.debug('[Tarefas] restored events from localStorage', normalized)
+      }
+    } catch (e) {
+      console.warn('[Tarefas] failed to restore events from localStorage', e)
     }
   }, [])
 
@@ -1700,7 +1721,12 @@ const Tarefas = () => {
                 </Button>
                 <Button
                   onClick={() => {
-                    const next = events.map((ev) => (ev.id === editingEvent.id ? editingEvent : ev))
+                    // Ensure editingEvent.date is normalized before saving
+                    const normalizedEdit = {
+                      ...editingEvent,
+                      date: normalizeEventDate(editingEvent.date) || String(editingEvent.date),
+                    }
+                    const next = events.map((ev) => (ev.id === editingEvent.id ? normalizedEdit : ev))
                     saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)
