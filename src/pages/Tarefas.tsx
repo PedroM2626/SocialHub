@@ -498,10 +498,11 @@ const Tarefas = () => {
             setNotificationRangeUnit(imported.notificationRangeUnit)
 
           try {
-            localStorage.setItem(
-              'local:events',
-              JSON.stringify(imported.events || []),
-            )
+            const normalized = (imported.events || []).map((ev: any) => ({
+              ...ev,
+              date: normalizeEventDate(ev.date) || ev.date,
+            }))
+            localStorage.setItem('local:events', JSON.stringify(normalized))
           } catch {}
           try {
             localStorage.setItem(
@@ -879,7 +880,7 @@ const Tarefas = () => {
         <div className="md:col-span-1">
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium">Calend��rio</h3>
+              <h3 className="text-sm font-medium">Calendário</h3>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   Cor
