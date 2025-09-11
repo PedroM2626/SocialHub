@@ -1600,7 +1600,7 @@ const Tarefas = () => {
               />
               <Label>Data</Label>
               <Calendar
-                selected={new Date(editingEvent.date)}
+                selected={parseEventDate(editingEvent.date) || undefined}
                 onSelect={(d) =>
                   setEditingEvent({
                     ...editingEvent,
@@ -1613,7 +1613,7 @@ const Tarefas = () => {
                 type="color"
                 value={
                   editingEvent.color ||
-                  dateColors[new Date(editingEvent.date).toDateString()] ||
+                  dateColors[(parseEventDate(editingEvent.date) || new Date()).toDateString()] ||
                   highlightColor
                 }
                 onChange={(e) =>
