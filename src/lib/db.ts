@@ -746,6 +746,7 @@ export async function syncLocalToSupabase(userId?: string) {
     const localTasks = readLocalTasks()
     if (Array.isArray(localTasks) && localTasks.length > 0) {
       console.log(`[DB] Found ${localTasks.length} local tasks to migrate`)
+      let migrated = 0
       for (const t of localTasks) {
         try {
           const payload: any = { ...t }
@@ -766,13 +767,14 @@ export async function syncLocalToSupabase(userId?: string) {
             // ignore check errors and attempt create
           }
           await createTask(payload)
+          migrated++
         } catch (err) {
           console.warn('[DB] failed to migrate task', t.id, err)
         }
       }
-      // remove local tasks after attempting migration
+      // remove local tasks only if we migrated at least one
       try {
-        localStorage.removeItem('local:tasks')
+        if (migrated > 0) localStorage.removeItem('local:tasks')
       } catch {}
     }
   } catch (err) {
