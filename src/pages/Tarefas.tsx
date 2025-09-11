@@ -1367,7 +1367,7 @@ const Tarefas = () => {
                       }
                     }),
                   ...events.map((e) => {
-                    const base = new Date(e.date)
+                    const base = parseEventDate(e.date) || new Date()
                     const dt = new Date(base)
                     if ((e as any).start_time) {
                       const [hh, mm] = (e as any).start_time
