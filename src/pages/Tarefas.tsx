@@ -519,7 +519,8 @@ const Tarefas = () => {
               ...ev,
               date: normalizeEventDate(ev.date) || ev.date,
             }))
-            localStorage.setItem('local:events', JSON.stringify(normalized))
+            // use saveEvents to both set state and persist
+            saveEvents(normalized)
           } catch {}
           try {
             localStorage.setItem(
