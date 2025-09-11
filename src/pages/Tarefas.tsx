@@ -1530,7 +1530,7 @@ const Tarefas = () => {
                 onSelect={(d) =>
                   setEditingEvent({
                     ...editingEvent,
-                    date: (d as Date).toISOString(),
+                    date: normalizeEventDate(d as Date) || (d as Date).toISOString(),
                   })
                 }
               />
