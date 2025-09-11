@@ -42,6 +42,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 
 const Tarefas = () => {
+  // normalize date strings from storage/import to local-midnight ISO to avoid timezone shifts
+  function normalizeEventDate(rawDate: string | Date | undefined | null) {
+    if (!rawDate) return null
+    if (rawDate instanceof Date) {
+      const dt = new Date(rawDate)
+      dt.setHours(0, 0, 0, 0)
+      return dt.toISOString()
+    }
+    const s = String(rawDate)
+    // if date-only YYYY-MM-DD, parse as local date
+    const dateOnlyMatch = s.match(/^\d{4}-\d{2}-\d{2}$/)
+    if (dateOnlyMatch) {
+      const [y, m, d] = s.split('-').map((n) => parseInt(n, 10))
+      const dt = new Date(y, m - 1, d)
+      dt.setHours(0, 0, 0, 0)
+      return dt.toISOString()
+    }
+    // try parsing full ISO-like string
+    const parsed = new Date(s)
+    if (!isNaN(parsed.getTime())) {
+      // if parsed has time component, keep it but normalize to local-midnight if time is 00:00:00Z
+      return parsed.toISOString()
+    }
+    return null
+  }
   const { user } = useAuth()
   const userId = user?.id
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
