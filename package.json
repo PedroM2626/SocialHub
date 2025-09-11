@@ -15,7 +15,9 @@
     "preview": "vite preview",
     "preinstall": "npx only-allow pnpm",
     "test": "vitest --run --cache",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "migrate:create_events_table": "node scripts/create_events_table.js",
+    "migrate:normalize_events_dates": "node scripts/normalize_events_dates.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
