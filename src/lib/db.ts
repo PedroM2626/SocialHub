@@ -786,6 +786,7 @@ export async function syncLocalToSupabase(userId?: string) {
     const localDesabafos = readLocalDesabafos()
     if (Array.isArray(localDesabafos) && localDesabafos.length > 0) {
       console.log(`[DB] Found ${localDesabafos.length} local desabafos to migrate`)
+      let migrated = 0
       for (const d of localDesabafos) {
         try {
           const payload: any = { ...d }
@@ -802,12 +803,13 @@ export async function syncLocalToSupabase(userId?: string) {
             // ignore check errors and attempt create
           }
           await createDesabafo(payload)
+          migrated++
         } catch (err) {
           console.warn('[DB] failed to migrate desabafo', d.id, err)
         }
       }
       try {
-        localStorage.removeItem('local:desabafos')
+        if (migrated > 0) localStorage.removeItem('local:desabafos')
       } catch {}
     }
   } catch (err) {
