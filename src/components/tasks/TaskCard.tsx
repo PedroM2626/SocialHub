@@ -100,10 +100,12 @@ export const TaskCard = ({
   onDelete,
 }: TaskCardProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isViewOpen, setIsViewOpen] = useState(false)
 
   const handleUpdate = (data: TaskFormValues) => {
     onUpdate(task.id, data)
     setIsEditModalOpen(false)
+    setIsViewOpen(false)
   }
 
   const calculateProgress = (
@@ -129,149 +131,194 @@ export const TaskCard = ({
   const titleAlignClass = `text-${task.titleAlignment || 'left'}`
   const descriptionAlignClass = `text-${task.descriptionAlignment || 'left'}`
 
+  // Render a compact, fixed-height card. Clicking opens a modal with full details.
   return (
-    <AlertDialog>
-      <Card
-        className={cn(
-          'glass-card interactive-card flex flex-col border',
-          task.is_completed && 'opacity-60',
-        )}
-        style={{
-          backgroundColor: task.backgroundColor,
-          borderStyle: task.borderStyle,
-          borderColor: 'hsl(var(--border))',
-        }}
-      >
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <CardTitle
-            className={cn(
-              'text-base font-medium pr-2 prose prose-sm dark:prose-invert max-w-full w-full',
-              titleAlignClass,
-            )}
-            dangerouslySetInnerHTML={{ __html: task.title }}
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Editar
-              </DropdownMenuItem>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
-          <div
-            className={cn(
-              'text-sm text-muted-foreground flex-1 prose prose-sm dark:prose-invert max-w-full',
-              descriptionAlignClass,
-            )}
-            dangerouslySetInnerHTML={{ __html: task.description }}
-          />
-          {task.subtasks.length > 0 && (
-            <div className="mt-4">
-              <Progress value={progress} className="h-2" />
-              <div className="space-y-2 mt-2">
-                <SubtaskList
-                  subtasks={task.subtasks}
-                  taskId={task.id}
-                  onToggleCompletion={onToggleCompletion}
-                  nestingLevel={0}
-                />
-              </div>
-            </div>
+    <>
+      <div className="h-48">
+        <Card
+          className={cn(
+            'glass-card interactive-card flex flex-col border h-full overflow-hidden cursor-pointer',
+            task.is_completed && 'opacity-60',
           )}
-          {task.attachments.length > 0 && (
-            <div className="mt-4">
-              <Separator className="my-2" />
-              <h4 className="text-sm font-medium mb-2">Anexos</h4>
-              <div className="space-y-2">
-                {task.attachments.map((attachment) => (
-                  <a
-                    key={attachment.id}
-                    href={attachment.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-2 p-2 rounded-md border bg-accent/50 hover:bg-accent transition-colors"
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <Paperclip className="h-4 w-4 flex-shrink-0" />
-                      <span className="text-sm font-medium truncate">
-                        {attachment.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs text-muted-foreground">
-                        ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
-                      <Download className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <Badge
-                className={cn('text-white', priorityVariant[task.priority])}
-              >
-                {task.priority}
-              </Badge>
-              {task.attachments.length > 0 && (
-                <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                  <Paperclip className="h-4 w-4" />
-                  <span>{task.attachments.length}</span>
-                </div>
+          style={{
+            backgroundColor: task.backgroundColor,
+            borderStyle: task.borderStyle,
+            borderColor: 'hsl(var(--border))',
+          }}
+          onClick={() => setIsViewOpen(true)}
+        >
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <CardTitle
+              className={cn(
+                'text-base font-medium pr-2 prose prose-sm dark:prose-invert max-w-full w-full truncate',
+                titleAlignClass,
               )}
-            </div>
-            <div className="flex flex-wrap gap-2 justify-end">
-              {task.tags.map((tag) => (
-                <Badge
-                  key={tag.id}
-                  style={{
-                    backgroundColor: tag.color,
-                    color: 'hsl(var(--primary-foreground))',
-                  }}
-                >
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={task.is_completed}
-              id={`task-${task.id}`}
-              onCheckedChange={() => onToggleCompletion(task.id)}
+              dangerouslySetInnerHTML={{ __html: task.title }}
             />
-            <label
-              htmlFor={`task-${task.id}`}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Concluída
-            </label>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => { setIsEditModalOpen(true); }}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
+                  </DropdownMenuItem>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardHeader>
+
+          <CardContent className="flex-1 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div
+              className={cn(
+                'text-sm text-muted-foreground flex-1 prose prose-sm dark:prose-invert max-w-full overflow-hidden',
+                descriptionAlignClass,
+              )}
+              style={{ maxHeight: 48 }}
+              dangerouslySetInnerHTML={{ __html: task.description }}
+            />
+
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge
+                  className={cn('text-white', priorityVariant[task.priority])}
+                >
+                  {task.priority}
+                </Badge>
+                {task.attachments.length > 0 && (
+                  <div className="flex items-center gap-1 text-muted-foreground text-sm">
+                    <Paperclip className="h-4 w-4" />
+                    <span>{task.attachments.length}</span>
+                  </div>
+                )}
+                {task.subtasks.length > 0 && (
+                  <div className="text-sm text-muted-foreground">{total} subtarefas</div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-1">
+                  {task.tags.slice(0, 3).map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      style={{
+                        backgroundColor: tag.color,
+                        color: 'hsl(var(--primary-foreground))',
+                      }}
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">{Math.round(progress)}%</div>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center space-x-2">
+              <Checkbox
+                checked={task.is_completed}
+                id={`task-${task.id}`}
+                onCheckedChange={() => onToggleCompletion(task.id)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <label
+                htmlFor={`task-${task.id}`}
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Concluída
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* View dialog with full details */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{/* title */}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium" dangerouslySetInnerHTML={{ __html: task.title }} />
+              <div className="text-sm text-muted-foreground mt-1" dangerouslySetInnerHTML={{ __html: task.description }} />
+            </div>
+
+            {task.subtasks.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium">Subtarefas</h4>
+                <div className="mt-2">
+                  <SubtaskList
+                    subtasks={task.subtasks}
+                    taskId={task.id}
+                    onToggleCompletion={onToggleCompletion}
+                    nestingLevel={0}
+                  />
+                </div>
+              </div>
+            )}
+
+            {task.attachments.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium">Anexos</h4>
+                <div className="mt-2 space-y-2">
+                  {task.attachments.map((attachment) => (
+                    <a
+                      key={attachment.id}
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-2 p-2 rounded-md border bg-accent/50 hover:bg-accent transition-colors"
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Paperclip className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-sm font-medium truncate">
+                          {attachment.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground">({(attachment.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        <Download className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge className={cn('text-white', priorityVariant[task.priority])}>{task.priority}</Badge>
+                <div className="text-sm text-muted-foreground">{total} subtarefas • {task.attachments.length} anexos</div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => { setIsEditModalOpen(true); setIsViewOpen(false); }}>Editar</Button>
+                <Button variant="destructive" onClick={() => onDelete(task.id)}>Excluir</Button>
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -284,6 +331,7 @@ export const TaskCard = ({
           />
         </DialogContent>
       </Dialog>
+
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
@@ -299,6 +347,6 @@ export const TaskCard = ({
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
-    </AlertDialog>
+    </>
   )
 }
