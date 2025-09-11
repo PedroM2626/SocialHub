@@ -1578,13 +1578,8 @@ const Tarefas = () => {
                 <Button
                   variant="destructive"
                   onClick={() => {
-                    const next = events.filter(
-                      (ev) => ev.id !== editingEvent.id,
-                    )
-                    setEvents(next)
-                    try {
-                      localStorage.setItem('local:events', JSON.stringify(next))
-                    } catch {}
+                    const next = events.filter((ev) => ev.id !== editingEvent.id)
+                    saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)
                   }}
