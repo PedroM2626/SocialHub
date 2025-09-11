@@ -721,10 +721,7 @@ const Tarefas = () => {
       end_time: createEventEndTime || '',
     }
     const next = [newEvent, ...events]
-    setEvents(next)
-    try {
-      localStorage.setItem('local:events', JSON.stringify(next))
-    } catch {}
+    saveEvents(next)
     setEventTitle('')
     setCreateEventColor(undefined)
     setCreateEventStartTime('')
