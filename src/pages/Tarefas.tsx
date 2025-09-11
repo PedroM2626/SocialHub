@@ -42,30 +42,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 
 const Tarefas = () => {
-  // normalize date strings from storage/import to local-midnight ISO to avoid timezone shifts
-  function normalizeEventDate(rawDate: string | Date | undefined | null) {
+  // Event date helpers: store as date-only 'YYYY-MM-DD' string to avoid timezone issues.
+  function toDateKey(d: Date) {
+    return d.toDateString()
+  }
+  function pad(n: number) {
+    return n < 10 ? '0' + n : String(n)
+  }
+  function formatDateISODateOnly(d: Date) {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  }
+  function parseEventDate(rawDate: string | Date | undefined | null): Date | null {
     if (!rawDate) return null
     if (rawDate instanceof Date) {
-      const dt = new Date(rawDate)
-      dt.setHours(0, 0, 0, 0)
-      return dt.toISOString()
+      return new Date(rawDate.getFullYear(), rawDate.getMonth(), rawDate.getDate())
     }
     const s = String(rawDate)
-    // if date-only YYYY-MM-DD, parse as local date
     const dateOnlyMatch = s.match(/^\d{4}-\d{2}-\d{2}$/)
     if (dateOnlyMatch) {
       const [y, m, d] = s.split('-').map((n) => parseInt(n, 10))
-      const dt = new Date(y, m - 1, d)
-      dt.setHours(0, 0, 0, 0)
-      return dt.toISOString()
+      return new Date(y, m - 1, d)
     }
-    // try parsing full ISO-like string
+    // try parsing full ISO-like string and convert to local date
     const parsed = new Date(s)
     if (!isNaN(parsed.getTime())) {
-      // if parsed has time component, keep it but normalize to local-midnight if time is 00:00:00Z
-      return parsed.toISOString()
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
     }
     return null
+  }
+  function normalizeEventDate(rawDate: string | Date | undefined | null) {
+    const d = parseEventDate(rawDate)
+    if (!d) return null
+    return formatDateISODateOnly(d)
   }
   const { user } = useAuth()
   const userId = user?.id
