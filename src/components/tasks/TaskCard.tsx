@@ -133,7 +133,7 @@ export const TaskCard = ({
 
   // Render a compact, fixed-height card. Clicking opens a modal with full details.
   return (
-    <>
+    <AlertDialog>
       <div className="h-48">
         <Card
           className={cn(
@@ -347,6 +347,6 @@ export const TaskCard = ({
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
-    </>
+    </AlertDialog>
   )
 }
