@@ -545,6 +545,7 @@ export async function updateTask(id: string, payload: any, userId?: string) {
   try {
     // Sanitize payload for optional columns to avoid DB errors when columns are absent
     const sanitized: any = { ...payload }
+    if (sanitized.due_date instanceof Date) sanitized.due_date = sanitized.due_date.toISOString()
     if (TASKS_HAS_BACKGROUND_COLOR !== true && 'backgroundColor' in sanitized)
       delete sanitized.backgroundColor
     if (TASKS_HAS_BORDER_STYLE !== true && 'borderStyle' in sanitized)
