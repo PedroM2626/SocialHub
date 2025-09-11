@@ -832,6 +832,7 @@ export async function syncLocalToSupabase(userId?: string) {
     const localEvents = readLocalEvents()
     if (Array.isArray(localEvents) && localEvents.length > 0) {
       console.log(`[DB] Found ${localEvents.length} local events to migrate`)
+      let migrated = 0
       for (const ev of localEvents) {
         try {
           const payload: any = { ...ev }
@@ -872,12 +873,13 @@ export async function syncLocalToSupabase(userId?: string) {
             }
             throw error
           }
+          migrated++
         } catch (err) {
           console.warn('[DB] failed to migrate event', ev.id, err)
         }
       }
       try {
-        localStorage.removeItem('local:events')
+        if (migrated > 0) localStorage.removeItem('local:events')
       } catch {}
     }
   } catch (err) {
