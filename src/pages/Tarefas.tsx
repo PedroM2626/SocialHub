@@ -207,10 +207,27 @@ const Tarefas = () => {
     }
   })
 
+  // helper to normalize and persist events
+  function saveEvents(next: any[]) {
+    const normalized = next.map((ev: any) => ({
+      ...ev,
+      date: normalizeEventDate(ev.date) || ev.date,
+    }))
+    try {
+      localStorage.setItem('local:events', JSON.stringify(normalized))
+    } catch {}
+    setEvents(normalized)
+  }
+
   // persist events/dateColors/highlightColor/notificationRange
   useEffect(() => {
     try {
-      localStorage.setItem('local:events', JSON.stringify(events))
+      // ensure events in storage are normalized
+      const normalized = events.map((ev: any) => ({
+        ...ev,
+        date: normalizeEventDate(ev.date) || ev.date,
+      }))
+      localStorage.setItem('local:events', JSON.stringify(normalized))
     } catch {}
   }, [events])
 
