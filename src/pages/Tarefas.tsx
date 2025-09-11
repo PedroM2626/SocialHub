@@ -1003,6 +1003,23 @@ const Tarefas = () => {
                 >
                   Agendar
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={async () => {
+                    try {
+                      toast({ title: 'Iniciando migração', description: 'Enviando eventos locais para Supabase...' })
+                      await syncLocalToSupabase(userId)
+                      toast({ title: 'Migração concluída', description: 'Eventos locais foram migrados (se existirem).' })
+                    } catch (err) {
+                      console.error('Force migrate events failed', err)
+                      toast({ variant: 'destructive', title: 'Migração falhou', description: String(err) })
+                    }
+                  }}
+                >
+                  Forçar migrar eventos
+                </Button>
               </div>
             </div>
             <Calendar
