@@ -129,7 +129,14 @@ const Tarefas = () => {
   >(() => {
     try {
       const raw = localStorage.getItem('local:events')
-      return raw ? JSON.parse(raw) : []
+      const parsed = raw ? JSON.parse(raw) : []
+      if (Array.isArray(parsed)) {
+        return parsed.map((ev: any) => ({
+          ...ev,
+          date: normalizeEventDate(ev.date) || ev.date,
+        }))
+      }
+      return []
     } catch {
       return []
     }
