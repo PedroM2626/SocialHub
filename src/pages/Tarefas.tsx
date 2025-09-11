@@ -296,6 +296,19 @@ const Tarefas = () => {
     } catch {}
   }, [events])
 
+  // persist tasks locally so user edits survive refresh when backend is flaky
+  useEffect(() => {
+    try {
+      const normalized = tasks.map((t: any) => ({
+        ...t,
+        due_date: normalizeEventDate(t.due_date) || t.due_date || null,
+      }))
+      localStorage.setItem('local:tasks', JSON.stringify(normalized))
+    } catch (e) {
+      console.warn('Failed to persist local tasks', e)
+    }
+  }, [tasks])
+
   useEffect(() => {
     try {
       localStorage.setItem('local:dateColors', JSON.stringify(dateColors))
