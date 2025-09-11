@@ -43,8 +43,17 @@ import { useAuth } from '@/contexts/AuthContext'
 
 const Tarefas = () => {
   // Event date helpers: store as date-only 'YYYY-MM-DD' string to avoid timezone issues.
-  function toDateKey(d: Date) {
-    return d.toDateString()
+  function toDateKey(d: any) {
+    if (!d) return ''
+    if (d instanceof Date && typeof d.toDateString === 'function') return d.toDateString()
+    // Try parse with parseEventDate (handles YYYY-MM-DD and ISO)
+    try {
+      const parsed = parseEventDate(d)
+      if (parsed) return parsed.toDateString()
+      const maybe = new Date(d)
+      if (!isNaN(maybe.getTime())) return maybe.toDateString()
+    } catch (_) {}
+    return String(d)
   }
   function pad(n: number) {
     return n < 10 ? '0' + n : String(n)
