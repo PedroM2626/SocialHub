@@ -145,6 +145,31 @@ const Tarefas = () => {
   const { toast } = useToast()
   const fileImportRef = useRef<HTMLInputElement>(null)
 
+  // Import preview/dialog state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [importPreview, setImportPreview] = useState<any | null>(null)
+  const [importReplaceTasks, setImportReplaceTasks] = useState(true)
+  const [importReplaceEvents, setImportReplaceEvents] = useState(true)
+
+  // helper merge functions for import
+  const mergeTasks = (existing: any[], incoming: any[]) => {
+    const map: Record<string, any> = {}
+    const keyFor = (t: any) => t.id || `${(t.title || '').toLowerCase()}::${t.due_date || ''}`
+    for (const t of existing || []) map[keyFor(t)] = t
+    for (const t of incoming || []) map[keyFor(t)] = t
+    return Object.values(map)
+  }
+  const mergeEvents = (existing: any[], incoming: any[]) => {
+    const map: Record<string, any> = {}
+    const keyFor = (ev: any) => ev.id || `${(ev.title || '').toLowerCase()}::${normalizeEventDate(ev.date) || ev.date}`
+    for (const ev of existing || []) map[keyFor(ev)] = ev
+    for (const ev of incoming || []) {
+      const normalized = { ...ev, date: normalizeEventDate(ev.date) || ev.date }
+      map[keyFor(normalized)] = normalized
+    }
+    return Object.values(map)
+  }
+
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [events, setEvents] = useState<
@@ -615,103 +640,26 @@ const Tarefas = () => {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string
-        const imported = JSON.parse(text)
+        const parsed = JSON.parse(text)
+        // normalize to object with optional tasks/events
+        let preview: any = null
+        if (Array.isArray(parsed)) preview = { tasks: parsed }
+        else if (parsed && typeof parsed === 'object') preview = parsed
+        else throw new Error('Formato inválido')
 
-        const confirmReplace = (what: string) =>
-          window.confirm(`Deseja substituir ${what} existentes?\nOK = Substituir, Cancel = Acrescentar`)
-
-        const mergeTasks = (existing: any[], incoming: any[]) => {
-          const map: Record<string, any> = {}
-          const keyFor = (t: any) =>
-            t.id || `${(t.title || '').toLowerCase()}::${t.due_date || ''}`
-          for (const t of existing || []) map[keyFor(t)] = t
-          for (const t of incoming || []) map[keyFor(t)] = t
-          return Object.values(map)
+        // normalize events dates for preview
+        if (preview.events) {
+          preview.events = (preview.events || []).map((ev: any) => ({
+            ...ev,
+            date: normalizeEventDate(ev.date) || ev.date,
+          }))
         }
 
-        const mergeEvents = (existing: any[], incoming: any[]) => {
-          const map: Record<string, any> = {}
-          const keyFor = (ev: any) =>
-            ev.id || `${(ev.title || '').toLowerCase()}::${normalizeEventDate(ev.date) || ev.date}`
-          for (const ev of existing || []) map[keyFor(ev)] = ev
-          for (const ev of incoming || []) {
-            const normalized = { ...ev, date: normalizeEventDate(ev.date) || ev.date }
-            map[keyFor(normalized)] = normalized
-          }
-          return Object.values(map)
-        }
-
-        if (Array.isArray(imported)) {
-          // treat as tasks array
-          const incomingTasks = imported
-          const replace = confirmReplace('tarefas')
-          if (replace) {
-            setTasks(incomingTasks)
-            toast({ title: 'Sucesso!', description: 'Tarefas importadas (substituídas).' })
-          } else {
-            setTasks((prev) => mergeTasks(prev, incomingTasks))
-            toast({ title: 'Sucesso!', description: 'Tarefas importadas (acrescentadas).' })
-          }
-        } else if (imported && typeof imported === 'object') {
-          // TASKS
-          if (imported.tasks) {
-            const incomingTasks = imported.tasks
-            const replaceTasks = confirmReplace('tarefas')
-            if (replaceTasks) setTasks(incomingTasks)
-            else setTasks((prev) => mergeTasks(prev, incomingTasks))
-          }
-
-          // EVENTS
-          if (imported.events) {
-            const incomingEvents = (imported.events || []).map((ev: any) => ({
-              ...ev,
-              date: normalizeEventDate(ev.date) || ev.date,
-            }))
-            const replaceEvents = confirmReplace('eventos')
-            if (replaceEvents) {
-              // use saveEvents to normalize + persist
-              saveEvents(incomingEvents)
-            } else {
-              const merged = mergeEvents(events, incomingEvents)
-              saveEvents(merged)
-            }
-          }
-
-          // other settings (always apply if present)
-          if (imported.dateColors) {
-            setDateColors(imported.dateColors)
-            try {
-              localStorage.setItem('local:dateColors', JSON.stringify(imported.dateColors || {}))
-            } catch {}
-          }
-          if (imported.highlightColor) {
-            setHighlightColor(imported.highlightColor)
-            try {
-              localStorage.setItem('local:highlightColor', imported.highlightColor || '')
-            } catch {}
-          }
-          if (typeof imported.notificationRangeValue === 'number') {
-            setNotificationRangeValue(imported.notificationRangeValue)
-            try {
-              localStorage.setItem('local:notificationRangeValue', String(imported.notificationRangeValue))
-            } catch {}
-          } else if (imported.notificationRangeDays) {
-            setNotificationRangeValue(imported.notificationRangeDays)
-            try {
-              localStorage.setItem('local:notificationRangeValue', String(imported.notificationRangeDays))
-            } catch {}
-          }
-          if (imported.notificationRangeUnit) {
-            setNotificationRangeUnit(imported.notificationRangeUnit)
-            try {
-              localStorage.setItem('local:notificationRangeUnit', imported.notificationRangeUnit)
-            } catch {}
-          }
-
-          toast({ title: 'Sucesso!', description: 'Dados importados.' })
-        } else {
-          throw new Error('Formato inválido')
-        }
+        setImportPreview(preview)
+        // default choices: replace tasks/events
+        setImportReplaceTasks(true)
+        setImportReplaceEvents(true)
+        setIsImportDialogOpen(true)
       } catch (error) {
         console.error('Import failed', error)
         toast({
@@ -722,8 +670,65 @@ const Tarefas = () => {
       }
     }
     reader.readAsText(file)
-    if (fileImportRef.current) {
-      fileImportRef.current.value = ''
+  }
+
+  const applyImport = (replaceTasks: boolean, replaceEvents: boolean) => {
+    if (!importPreview) return
+    try {
+      if (importPreview.tasks) {
+        if (replaceTasks) {
+          setTasks(importPreview.tasks)
+        } else {
+          setTasks((prev) => mergeTasks(prev, importPreview.tasks))
+        }
+      }
+      if (importPreview.events) {
+        if (replaceEvents) {
+          saveEvents(importPreview.events)
+        } else {
+          const merged = mergeEvents(events, importPreview.events)
+          saveEvents(merged)
+        }
+      }
+
+      if (importPreview.dateColors) {
+        setDateColors(importPreview.dateColors)
+        try {
+          localStorage.setItem('local:dateColors', JSON.stringify(importPreview.dateColors || {}))
+        } catch {}
+      }
+      if (importPreview.highlightColor) {
+        setHighlightColor(importPreview.highlightColor)
+        try {
+          localStorage.setItem('local:highlightColor', importPreview.highlightColor || '')
+        } catch {}
+      }
+      if (typeof importPreview.notificationRangeValue === 'number') {
+        setNotificationRangeValue(importPreview.notificationRangeValue)
+        try {
+          localStorage.setItem('local:notificationRangeValue', String(importPreview.notificationRangeValue))
+        } catch {}
+      } else if (importPreview.notificationRangeDays) {
+        setNotificationRangeValue(importPreview.notificationRangeDays)
+        try {
+          localStorage.setItem('local:notificationRangeValue', String(importPreview.notificationRangeDays))
+        } catch {}
+      }
+      if (importPreview.notificationRangeUnit) {
+        setNotificationRangeUnit(importPreview.notificationRangeUnit)
+        try {
+          localStorage.setItem('local:notificationRangeUnit', importPreview.notificationRangeUnit)
+        } catch {}
+      }
+
+      toast({ title: 'Sucesso!', description: 'Dados importados.' })
+    } catch (err) {
+      console.error('applyImport failed', err)
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao aplicar importação.' })
+    } finally {
+      setIsImportDialogOpen(false)
+      setImportPreview(null)
+      if (fileImportRef.current) fileImportRef.current.value = ''
     }
   }
 
@@ -1038,6 +1043,65 @@ const Tarefas = () => {
           </PopoverContent>
         </Popover>
       </div>
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="glass-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar JSON</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Revise as opções abaixo antes de aplicar a importação.
+            </p>
+            {importPreview?.tasks && (
+              <div className="p-3 border rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Tarefas</div>
+                    <div className="text-xs text-muted-foreground">{(importPreview.tasks || []).length} tarefas encontradas</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => setImportReplaceTasks(true)}
+                      variant={importReplaceTasks ? undefined : 'outline'}>
+                      Substituir
+                    </Button>
+                    <Button size="sm" onClick={() => setImportReplaceTasks(false)}
+                      variant={!importReplaceTasks ? undefined : 'outline'}>
+                      Acrescentar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {importPreview?.events && (
+              <div className="p-3 border rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Eventos</div>
+                    <div className="text-xs text-muted-foreground">{(importPreview.events || []).length} eventos encontrados</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => setImportReplaceEvents(true)}
+                      variant={importReplaceEvents ? undefined : 'outline'}>
+                      Substituir
+                    </Button>
+                    <Button size="sm" onClick={() => setImportReplaceEvents(false)}
+                      variant={!importReplaceEvents ? undefined : 'outline'}>
+                      Acrescentar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setIsImportDialogOpen(false); setImportPreview(null); if (fileImportRef.current) fileImportRef.current.value = '' }}>Cancelar</Button>
+              <Button onClick={() => applyImport(importReplaceTasks, importReplaceEvents)}>Aplicar Importação</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
