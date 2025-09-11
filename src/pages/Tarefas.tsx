@@ -1058,7 +1058,18 @@ const Tarefas = () => {
                             <div className="text-sm font-medium">{t.title}</div>
                             {within && (
                               <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
-                                Vence em {daysUntil}d
+                                Vence em {(() => {
+                                  if (typeof target === 'undefined') return 'N/A'
+                                  const diffMs = target.getTime() - now.getTime()
+                                  if (notificationRangeUnit === 'hours')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                  if (notificationRangeUnit === 'months')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                  return `${Math.ceil(
+                                    (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                                      (1000 * 60 * 60 * 24),
+                                  )}d`
+                                })()}
                               </span>
                             )}
                           </div>
@@ -1152,10 +1163,21 @@ const Tarefas = () => {
                                 {e.title}
                               </div>
                               {within && (
-                                <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
-                                  Vence em {daysUntil}d
-                                </span>
-                              )}
+                              <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
+                                Vence em {(() => {
+                                  if (typeof target === 'undefined') return 'N/A'
+                                  const diffMs = target.getTime() - now.getTime()
+                                  if (notificationRangeUnit === 'hours')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                  if (notificationRangeUnit === 'months')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                  return `${Math.ceil(
+                                    (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                                      (1000 * 60 * 60 * 24),
+                                  )}d`
+                                })()}
+                              </span>
+                            )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
