@@ -527,6 +527,8 @@ export async function createTask(payload: any) {
   // Only include backgroundColor and borderStyle if DB supports those columns
   if (TASKS_HAS_BACKGROUND_COLOR === true) record.backgroundColor = payload.backgroundColor || null
   if (TASKS_HAS_BORDER_STYLE === true) record.borderStyle = payload.borderStyle || null
+  // Only include attachments if DB supports it
+  if (TASKS_HAS_ATTACHMENTS === true) record.attachments = payload.attachments || []
 
   try {
     const { data, error } = await withTimeout(
