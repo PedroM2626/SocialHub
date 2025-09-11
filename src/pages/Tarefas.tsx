@@ -1247,14 +1247,13 @@ const Tarefas = () => {
               ) : (
                 <ul className="mt-2 space-y-2">
                   {events
-                    .filter(
-                      (e) =>
-                        new Date(e.date).toDateString() ===
-                        selectedDate?.toDateString(),
-                    )
+                    .filter((e) => {
+                      const ed = parseEventDate(e.date)
+                      return ed ? ed.toDateString() === selectedDate?.toDateString() : false
+                    })
                     .map((e) => {
                       const target = (() => {
-                        const base = new Date(e.date)
+                        const base = parseEventDate(e.date) || new Date()
                         if ((e as any).start_time) {
                           const [hh, mm] = (e as any).start_time
                             .split(':')
