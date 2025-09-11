@@ -812,5 +812,73 @@ export async function syncLocalToSupabase(userId?: string) {
     console.warn('[DB] syncLocalToSupabase desabafos failed', err)
   }
 
+  // Sync events (local-only data) into a Supabase "events" table if present
+  try {
+    function readLocalEvents(): any[] {
+      try {
+        const raw = localStorage.getItem('local:events')
+        if (!raw) return []
+        return JSON.parse(raw)
+      } catch (err) {
+        console.warn('readLocalEvents failed', err)
+        return []
+      }
+    }
+
+    const localEvents = readLocalEvents()
+    if (Array.isArray(localEvents) && localEvents.length > 0) {
+      console.log(`[DB] Found ${localEvents.length} local events to migrate`)
+      for (const ev of localEvents) {
+        try {
+          const payload: any = { ...ev }
+          if (!payload.user_id && userId) payload.user_id = userId
+          // Normalize date strings: ensure ISO
+          if (payload.date && !(payload.date as any).endsWith?.('Z')) {
+            const parsed = new Date(payload.date)
+            if (!isNaN(parsed.getTime())) payload.date = parsed.toISOString()
+          }
+
+          // Try insert into events table; if table missing, inform and skip
+          try {
+            const { data: existing } = await withTimeout(
+              supabase.from('events').select('id').eq('id', payload.id).limit(1).single(),
+            )
+            if (existing && (existing as any).id) {
+              console.log('[DB] event exists, skipping', (existing as any).id)
+              continue
+            }
+          } catch (e) {
+            // If selecting fails because table doesn't exist, supabase client will return an error
+            const msg = (e as any)?.message || String(e)
+            if (/relation\s+"events"\s+does not exist/i.test(msg) || /table\s+\"events\"\s+does not exist/i.test(msg) || /Cannot read properties of undefined/i.test(msg)) {
+              console.warn('[DB] Supabase events table does not exist. To migrate local events to Supabase, run the script: scripts/create_events_table.js and then re-run sync.')
+              break
+            }
+          }
+
+          const { data, error } = await withTimeout(
+            supabase.from('events').insert(payload).select().single(),
+          )
+          if (error) {
+            // If insert failed due to missing table, warn and stop
+            const emsg = (error as any).message || JSON.stringify(error)
+            if (/relation\s+"events"\s+does not exist/i.test(emsg) || /table\s+\"events\"\s+does not exist/i.test(emsg)) {
+              console.warn('[DB] Supabase events table missing; run scripts/create_events_table.js then re-run syncLocalToSupabase')
+              break
+            }
+            throw error
+          }
+        } catch (err) {
+          console.warn('[DB] failed to migrate event', ev.id, err)
+        }
+      }
+      try {
+        localStorage.removeItem('local:events')
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[DB] syncLocalToSupabase events failed', err)
+  }
+
   console.log('[DB] syncLocalToSupabase complete')
 }
