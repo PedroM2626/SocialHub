@@ -219,6 +219,54 @@ const Tarefas = () => {
     setEvents(normalized)
   }
 
+  // one-time migration: normalize + dedupe local:events and push to Supabase
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('local:events')
+      if (!raw) return
+      let arr = JSON.parse(raw)
+      if (!Array.isArray(arr)) return
+      // normalize dates
+      arr = arr.map((ev: any) => ({ ...ev, date: normalizeEventDate(ev.date) || ev.date }))
+      // dedupe by id, prefer latest by timestamp
+      const byId: Record<string, any> = {}
+      for (const ev of arr) {
+        if (!ev.id) ev.id = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        if (!byId[ev.id]) byId[ev.id] = ev
+        else {
+          try {
+            const a = new Date(byId[ev.id].date)
+            const b = new Date(ev.date)
+            if (b.getTime() > a.getTime()) byId[ev.id] = ev
+          } catch {
+            byId[ev.id] = ev
+          }
+        }
+      }
+      const deduped = Object.values(byId)
+      // also dedupe by title+date to avoid duplicates if ids missing
+      const seen: Record<string, any> = {}
+      const final: any[] = []
+      for (const ev of deduped) {
+        const key = `${ev.title?.toLowerCase() || ''}::${new Date(ev.date).toDateString()}`
+        if (!seen[key]) {
+          seen[key] = true
+          final.push(ev)
+        }
+      }
+      // persist normalized/deduped
+      saveEvents(final)
+      // attempt to sync to Supabase for current user
+      try {
+        syncLocalToSupabase().catch((e) =>
+          console.warn('[Tarefas] syncLocalToSupabase failed', e),
+        )
+      } catch (e) {}
+    } catch (err) {
+      console.warn('[Tarefas] one-time event migration failed', err)
+    }
+  }, [])
+
   // persist events/dateColors/highlightColor/notificationRange
   useEffect(() => {
     try {
