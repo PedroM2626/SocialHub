@@ -1037,10 +1037,11 @@ const Tarefas = () => {
               components={{
                 DayButton: (props) => {
                   const day = props.day
-                  const key = day ? new Date(day).toDateString() : ''
-                  const eventForDay = events.find(
-                    (e) => new Date(e.date).toDateString() === key,
-                  )
+                  const key = day ? toDateKey(day) : ''
+                  const eventForDay = events.find((e) => {
+                    const ed = parseEventDate(e.date)
+                    return ed ? toDateKey(ed) === key : false
+                  })
                   const color =
                     (eventForDay && eventForDay.color) ||
                     (key && dateColors[key] ? dateColors[key] : null)
@@ -1049,9 +1050,10 @@ const Tarefas = () => {
                       t.due_date &&
                       new Date(t.due_date as any).toDateString() === key,
                   ).length
-                  const eventsCount = events.filter(
-                    (e) => new Date(e.date).toDateString() === key,
-                  ).length
+                  const eventsCount = events.filter((e) => {
+                    const ed = parseEventDate(e.date)
+                    return ed ? toDateKey(ed) === key : false
+                  }).length
                   const count = tasksCount + eventsCount
                   const hasItem = count > 0
 
