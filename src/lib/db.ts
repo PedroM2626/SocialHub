@@ -553,10 +553,12 @@ export async function updateTask(id: string, payload: any, userId?: string) {
     // Sanitize payload for optional columns to avoid DB errors when columns are absent
     const sanitized: any = { ...payload }
     if (sanitized.due_date instanceof Date) sanitized.due_date = sanitized.due_date.toISOString()
+    if (sanitized.due_date instanceof Date) sanitized.due_date = sanitized.due_date.toISOString()
     if (TASKS_HAS_BACKGROUND_COLOR !== true && 'backgroundColor' in sanitized)
       delete sanitized.backgroundColor
     if (TASKS_HAS_BORDER_STYLE !== true && 'borderStyle' in sanitized)
       delete sanitized.borderStyle
+    if (TASKS_HAS_ATTACHMENTS !== true && 'attachments' in sanitized) delete sanitized.attachments
 
     let query = supabase.from('tasks').update(sanitized).eq('id', id)
     if (userId && TASKS_HAS_USER_ID === true) query = query.eq('user_id', userId)
