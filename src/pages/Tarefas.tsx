@@ -617,63 +617,96 @@ const Tarefas = () => {
         const text = e.target?.result as string
         const imported = JSON.parse(text)
 
-        if (Array.isArray(imported)) {
-          setTasks(imported)
-          toast({ title: 'Sucesso!', description: 'Tarefas importadas.' })
-        } else if (imported && typeof imported === 'object') {
-          if (imported.tasks) setTasks(imported.tasks)
-          if (imported.events)
-            setEvents(
-              (imported.events || []).map((ev: any) => ({
-                ...ev,
-                date: normalizeEventDate(ev.date) || ev.date,
-              })),
-            )
-          if (imported.dateColors) setDateColors(imported.dateColors)
-          if (imported.highlightColor)
-            setHighlightColor(imported.highlightColor)
-          if (typeof imported.notificationRangeValue === 'number')
-            setNotificationRangeValue(imported.notificationRangeValue)
-          else if (imported.notificationRangeDays)
-            setNotificationRangeValue(imported.notificationRangeDays)
-          if (imported.notificationRangeUnit)
-            setNotificationRangeUnit(imported.notificationRangeUnit)
+        const confirmReplace = (what: string) =>
+          window.confirm(`Deseja substituir ${what} existentes?\nOK = Substituir, Cancel = Acrescentar`)
 
-          try {
-            const normalized = (imported.events || []).map((ev: any) => ({
+        const mergeTasks = (existing: any[], incoming: any[]) => {
+          const map: Record<string, any> = {}
+          const keyFor = (t: any) =>
+            t.id || `${(t.title || '').toLowerCase()}::${t.due_date || ''}`
+          for (const t of existing || []) map[keyFor(t)] = t
+          for (const t of incoming || []) map[keyFor(t)] = t
+          return Object.values(map)
+        }
+
+        const mergeEvents = (existing: any[], incoming: any[]) => {
+          const map: Record<string, any> = {}
+          const keyFor = (ev: any) =>
+            ev.id || `${(ev.title || '').toLowerCase()}::${normalizeEventDate(ev.date) || ev.date}`
+          for (const ev of existing || []) map[keyFor(ev)] = ev
+          for (const ev of incoming || []) {
+            const normalized = { ...ev, date: normalizeEventDate(ev.date) || ev.date }
+            map[keyFor(normalized)] = normalized
+          }
+          return Object.values(map)
+        }
+
+        if (Array.isArray(imported)) {
+          // treat as tasks array
+          const incomingTasks = imported
+          const replace = confirmReplace('tarefas')
+          if (replace) {
+            setTasks(incomingTasks)
+            toast({ title: 'Sucesso!', description: 'Tarefas importadas (substituídas).' })
+          } else {
+            setTasks((prev) => mergeTasks(prev, incomingTasks))
+            toast({ title: 'Sucesso!', description: 'Tarefas importadas (acrescentadas).' })
+          }
+        } else if (imported && typeof imported === 'object') {
+          // TASKS
+          if (imported.tasks) {
+            const incomingTasks = imported.tasks
+            const replaceTasks = confirmReplace('tarefas')
+            if (replaceTasks) setTasks(incomingTasks)
+            else setTasks((prev) => mergeTasks(prev, incomingTasks))
+          }
+
+          // EVENTS
+          if (imported.events) {
+            const incomingEvents = (imported.events || []).map((ev: any) => ({
               ...ev,
               date: normalizeEventDate(ev.date) || ev.date,
             }))
-            // use saveEvents to both set state and persist
-            saveEvents(normalized)
-          } catch {}
-          try {
-            localStorage.setItem(
-              'local:dateColors',
-              JSON.stringify(imported.dateColors || {}),
-            )
-          } catch {}
-          try {
-            localStorage.setItem(
-              'local:highlightColor',
-              imported.highlightColor || '',
-            )
-          } catch {}
-          try {
-            localStorage.setItem(
-              'local:notificationRangeValue',
-              String(
-                imported.notificationRangeValue ||
-                  imported.notificationRangeDays ||
-                  notificationRangeValue,
-              ),
-            )
-            if (imported.notificationRangeUnit)
-              localStorage.setItem(
-                'local:notificationRangeUnit',
-                imported.notificationRangeUnit,
-              )
-          } catch {}
+            const replaceEvents = confirmReplace('eventos')
+            if (replaceEvents) {
+              // use saveEvents to normalize + persist
+              saveEvents(incomingEvents)
+            } else {
+              const merged = mergeEvents(events, incomingEvents)
+              saveEvents(merged)
+            }
+          }
+
+          // other settings (always apply if present)
+          if (imported.dateColors) {
+            setDateColors(imported.dateColors)
+            try {
+              localStorage.setItem('local:dateColors', JSON.stringify(imported.dateColors || {}))
+            } catch {}
+          }
+          if (imported.highlightColor) {
+            setHighlightColor(imported.highlightColor)
+            try {
+              localStorage.setItem('local:highlightColor', imported.highlightColor || '')
+            } catch {}
+          }
+          if (typeof imported.notificationRangeValue === 'number') {
+            setNotificationRangeValue(imported.notificationRangeValue)
+            try {
+              localStorage.setItem('local:notificationRangeValue', String(imported.notificationRangeValue))
+            } catch {}
+          } else if (imported.notificationRangeDays) {
+            setNotificationRangeValue(imported.notificationRangeDays)
+            try {
+              localStorage.setItem('local:notificationRangeValue', String(imported.notificationRangeDays))
+            } catch {}
+          }
+          if (imported.notificationRangeUnit) {
+            setNotificationRangeUnit(imported.notificationRangeUnit)
+            try {
+              localStorage.setItem('local:notificationRangeUnit', imported.notificationRangeUnit)
+            } catch {}
+          }
 
           toast({ title: 'Sucesso!', description: 'Dados importados.' })
         } else {
