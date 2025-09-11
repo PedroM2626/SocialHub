@@ -539,6 +539,8 @@ export async function createTask(payload: any) {
   if (TASKS_HAS_BORDER_STYLE === true) record.borderStyle = payload.borderStyle || null
   // Only include attachments if DB supports it
   if (TASKS_HAS_ATTACHMENTS === true) record.attachments = payload.attachments || []
+  if (TASKS_HAS_TITLE_ALIGNMENT === true) record.titleAlignment = payload.titleAlignment || null
+  if (TASKS_HAS_DESCRIPTION_ALIGNMENT === true) record.descriptionAlignment = payload.descriptionAlignment || null
 
   try {
     const { data, error } = await withTimeout(
