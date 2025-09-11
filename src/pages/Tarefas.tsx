@@ -1236,10 +1236,8 @@ const Tarefas = () => {
               <h4 className="text-sm font-medium">Eventos</h4>
               {events.filter((e) => {
                 if (!selectedDate) return false
-                return (
-                  new Date(e.date).toDateString() ===
-                  selectedDate.toDateString()
-                )
+                const ed = parseEventDate(e.date)
+                return ed ? ed.toDateString() === selectedDate.toDateString() : false
               }).length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhum evento neste dia.
