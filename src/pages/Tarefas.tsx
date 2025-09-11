@@ -480,7 +480,13 @@ const Tarefas = () => {
           toast({ title: 'Sucesso!', description: 'Tarefas importadas.' })
         } else if (imported && typeof imported === 'object') {
           if (imported.tasks) setTasks(imported.tasks)
-          if (imported.events) setEvents(imported.events)
+          if (imported.events)
+            setEvents(
+              (imported.events || []).map((ev: any) => ({
+                ...ev,
+                date: normalizeEventDate(ev.date) || ev.date,
+              })),
+            )
           if (imported.dateColors) setDateColors(imported.dateColors)
           if (imported.highlightColor)
             setHighlightColor(imported.highlightColor)
@@ -873,7 +879,7 @@ const Tarefas = () => {
         <div className="md:col-span-1">
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium">Calendário</h3>
+              <h3 className="text-sm font-medium">Calend��rio</h3>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   Cor
