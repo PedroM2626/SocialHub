@@ -25,7 +25,13 @@ import { Label } from '@/components/ui/label'
 import { Input as UiInput } from '@/components/ui/input'
 import { tasks as mockTasks } from '@/lib/mock-data'
 import { TaskCard } from '@/components/tasks/TaskCard'
-import { getTasks, createTask, updateTask, deleteTask, syncLocalToSupabase } from '@/lib/db'
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+  syncLocalToSupabase,
+} from '@/lib/db'
 import {
   Popover,
   PopoverContent,
@@ -45,7 +51,8 @@ const Tarefas = () => {
   // Event date helpers: store as date-only 'YYYY-MM-DD' string to avoid timezone issues.
   function toDateKey(d: any) {
     if (!d) return ''
-    if (d instanceof Date && typeof d.toDateString === 'function') return d.toDateString()
+    if (d instanceof Date && typeof d.toDateString === 'function')
+      return d.toDateString()
     // Try parse with parseEventDate (handles YYYY-MM-DD and ISO)
     try {
       const parsed = parseEventDate(d)
@@ -61,10 +68,16 @@ const Tarefas = () => {
   function formatDateISODateOnly(d: Date) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   }
-  function parseEventDate(rawDate: string | Date | undefined | null): Date | null {
+  function parseEventDate(
+    rawDate: string | Date | undefined | null,
+  ): Date | null {
     if (!rawDate) return null
     if (rawDate instanceof Date) {
-      return new Date(rawDate.getFullYear(), rawDate.getMonth(), rawDate.getDate())
+      return new Date(
+        rawDate.getFullYear(),
+        rawDate.getMonth(),
+        rawDate.getDate(),
+      )
     }
     const s = String(rawDate)
     const dateOnlyMatch = s.match(/^\d{4}-\d{2}-\d{2}$/)
@@ -253,11 +266,15 @@ const Tarefas = () => {
       let arr = JSON.parse(raw)
       if (!Array.isArray(arr)) return
       // normalize dates
-      arr = arr.map((ev: any) => ({ ...ev, date: normalizeEventDate(ev.date) || ev.date }))
+      arr = arr.map((ev: any) => ({
+        ...ev,
+        date: normalizeEventDate(ev.date) || ev.date,
+      }))
       // dedupe by id, prefer latest by timestamp
       const byId: Record<string, any> = {}
       for (const ev of arr) {
-        if (!ev.id) ev.id = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        if (!ev.id)
+          ev.id = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
         if (!byId[ev.id]) byId[ev.id] = ev
         else {
           try {
@@ -1069,12 +1086,23 @@ const Tarefas = () => {
                   className="w-full sm:w-auto"
                   onClick={async () => {
                     try {
-                      toast({ title: 'Iniciando migração', description: 'Enviando eventos locais para Supabase...' })
+                      toast({
+                        title: 'Iniciando migração',
+                        description: 'Enviando eventos locais para Supabase...',
+                      })
                       await syncLocalToSupabase(userId)
-                      toast({ title: 'Migração concluída', description: 'Eventos locais foram migrados (se existirem).' })
+                      toast({
+                        title: 'Migração concluída',
+                        description:
+                          'Eventos locais foram migrados (se existirem).',
+                      })
                     } catch (err) {
                       console.error('Force migrate events failed', err)
-                      toast({ variant: 'destructive', title: 'Migração falhou', description: String(err) })
+                      toast({
+                        variant: 'destructive',
+                        title: 'Migração falhou',
+                        description: String(err),
+                      })
                     }
                   }}
                 >
@@ -1239,15 +1267,19 @@ const Tarefas = () => {
                             <div className="text-sm font-medium">{t.title}</div>
                             {within && (
                               <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
-                                Vence em {(() => {
-                                  if (typeof target === 'undefined') return 'N/A'
-                                  const diffMs = target.getTime() - now.getTime()
+                                Vence em{' '}
+                                {(() => {
+                                  if (typeof target === 'undefined')
+                                    return 'N/A'
+                                  const diffMs =
+                                    target.getTime() - now.getTime()
                                   if (notificationRangeUnit === 'hours')
                                     return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
                                   if (notificationRangeUnit === 'months')
                                     return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
                                   return `${Math.ceil(
-                                    (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
+                                    (target.getTime() -
+                                      new Date().setHours(0, 0, 0, 0)) /
                                       (1000 * 60 * 60 * 24),
                                   )}d`
                                 })()}
@@ -1289,7 +1321,9 @@ const Tarefas = () => {
               {events.filter((e) => {
                 if (!selectedDate) return false
                 const ed = parseEventDate(e.date)
-                return ed ? ed.toDateString() === selectedDate.toDateString() : false
+                return ed
+                  ? ed.toDateString() === selectedDate.toDateString()
+                  : false
               }).length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhum evento neste dia.
@@ -1299,7 +1333,9 @@ const Tarefas = () => {
                   {events
                     .filter((e) => {
                       const ed = parseEventDate(e.date)
-                      return ed ? ed.toDateString() === selectedDate?.toDateString() : false
+                      return ed
+                        ? ed.toDateString() === selectedDate?.toDateString()
+                        : false
                     })
                     .map((e) => {
                       const target = (() => {
@@ -1341,21 +1377,25 @@ const Tarefas = () => {
                                 {e.title}
                               </div>
                               {within && (
-                              <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
-                                Vence em {(() => {
-                                  if (typeof target === 'undefined') return 'N/A'
-                                  const diffMs = target.getTime() - now.getTime()
-                                  if (notificationRangeUnit === 'hours')
-                                    return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
-                                  if (notificationRangeUnit === 'months')
-                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
-                                  return `${Math.ceil(
-                                    (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
-                                      (1000 * 60 * 60 * 24),
-                                  )}d`
-                                })()}
-                              </span>
-                            )}
+                                <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
+                                  Vence em{' '}
+                                  {(() => {
+                                    if (typeof target === 'undefined')
+                                      return 'N/A'
+                                    const diffMs =
+                                      target.getTime() - now.getTime()
+                                    if (notificationRangeUnit === 'hours')
+                                      return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                    if (notificationRangeUnit === 'months')
+                                      return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                    return `${Math.ceil(
+                                      (target.getTime() -
+                                        new Date().setHours(0, 0, 0, 0)) /
+                                        (1000 * 60 * 60 * 24),
+                                    )}d`
+                                  })()}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
@@ -1373,7 +1413,9 @@ const Tarefas = () => {
                               size="sm"
                               variant="destructive"
                               onClick={() => {
-                                const next = events.filter((ev) => ev.id !== e.id)
+                                const next = events.filter(
+                                  (ev) => ev.id !== e.id,
+                                )
                                 saveEvents(next)
                                 // no backend persistence required
                               }}
@@ -1654,7 +1696,9 @@ const Tarefas = () => {
                 onSelect={(d) =>
                   setEditingEvent({
                     ...editingEvent,
-                    date: normalizeEventDate(d as Date) || (d as Date).toISOString(),
+                    date:
+                      normalizeEventDate(d as Date) ||
+                      (d as Date).toISOString(),
                   })
                 }
               />
@@ -1663,7 +1707,11 @@ const Tarefas = () => {
                 type="color"
                 value={
                   editingEvent.color ||
-                  dateColors[(parseEventDate(editingEvent.date) || new Date()).toDateString()] ||
+                  dateColors[
+                    (
+                      parseEventDate(editingEvent.date) || new Date()
+                    ).toDateString()
+                  ] ||
                   highlightColor
                 }
                 onChange={(e) =>
@@ -1702,7 +1750,9 @@ const Tarefas = () => {
                 <Button
                   variant="destructive"
                   onClick={() => {
-                    const next = events.filter((ev) => ev.id !== editingEvent.id)
+                    const next = events.filter(
+                      (ev) => ev.id !== editingEvent.id,
+                    )
                     saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)
@@ -1724,9 +1774,13 @@ const Tarefas = () => {
                     // Ensure editingEvent.date is normalized before saving
                     const normalizedEdit = {
                       ...editingEvent,
-                      date: normalizeEventDate(editingEvent.date) || String(editingEvent.date),
+                      date:
+                        normalizeEventDate(editingEvent.date) ||
+                        String(editingEvent.date),
                     }
-                    const next = events.map((ev) => (ev.id === editingEvent.id ? normalizedEdit : ev))
+                    const next = events.map((ev) =>
+                      ev.id === editingEvent.id ? normalizedEdit : ev,
+                    )
                     saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)

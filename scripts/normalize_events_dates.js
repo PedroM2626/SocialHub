@@ -22,8 +22,20 @@ async function main() {
         const d = row.date ? new Date(row.date) : null
         if (!d) continue
         // normalize to UTC midnight of the same date
-        const norm = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0))
-        await client.query('UPDATE events SET date = $1 WHERE id = $2', [norm.toISOString(), row.id])
+        const norm = new Date(
+          Date.UTC(
+            d.getUTCFullYear(),
+            d.getUTCMonth(),
+            d.getUTCDate(),
+            0,
+            0,
+            0,
+          ),
+        )
+        await client.query('UPDATE events SET date = $1 WHERE id = $2', [
+          norm.toISOString(),
+          row.id,
+        ])
         console.log('Normalized event', row.id, norm.toISOString())
       } catch (err) {
         console.error('Failed to normalize', row.id, err)
