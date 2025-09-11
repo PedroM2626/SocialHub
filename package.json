@@ -16,8 +16,8 @@
     "preinstall": "npx only-allow pnpm",
     "test": "vitest --run --cache",
     "test:watch": "vitest",
-    "migrate:create_events_table": "node scripts/create_events_table.js",
-    "migrate:normalize_events_dates": "node scripts/normalize_events_dates.js"
+    "migrate:create_events_table": "node scripts/create_events_table.cjs",
+    "migrate:normalize_events_dates": "node scripts/normalize_events_dates.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
