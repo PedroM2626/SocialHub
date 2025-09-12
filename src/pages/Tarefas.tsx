@@ -1759,6 +1759,21 @@ const Tarefas = () => {
                   onUpdate={handleUpdateTask}
                   onToggleCompletion={toggleCompletion}
                   onDelete={handleDeleteTask}
+                  onReorderSubtasks={(taskId, next) => {
+                    const prev = tasks.find((t) => t.id === taskId)
+                    setTasks((ps) => ps.map((p) => (p.id === taskId ? { ...p, subtasks: next } : p)))
+                    ;(async () => {
+                      try {
+                        const ok = await updateTask(taskId, { subtasks: next }, userId)
+                        if (!ok) throw new Error('Failed to persist reorder')
+                        toast({ title: 'Sucesso', description: 'Subtarefas reorganizadas.' })
+                      } catch (err) {
+                        console.error('Failed to persist reorder', err)
+                        if (prev) setTasks((ps) => ps.map((p) => (p.id === taskId ? prev : p)))
+                        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a nova ordem.' })
+                      }
+                    })()
+                  }}
                 />
               </div>
             ))}
