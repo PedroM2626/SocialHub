@@ -54,14 +54,36 @@ const SubtaskList = ({
   taskId,
   onToggleCompletion,
   nestingLevel,
-}: SubtaskListProps) => {
+  onReorder,
+}: SubtaskListProps & { onReorder?: (next: Subtask[]) => void }) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/subtask-index', String(index))
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+    const src = e.dataTransfer.getData('text/subtask-index')
+    if (!src) return
+    const from = parseInt(src, 10)
+    const to = targetIndex
+    if (isNaN(from) || isNaN(to) || from === to) return
+    const next = [...subtasks]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    onReorder && onReorder(next)
+  }
+
   return (
     <div
       className="space-y-2 pl-4 border-l-2 border-border/30"
       style={{ marginLeft: `${nestingLevel * 10}px` }}
     >
-      {subtasks.map((subtask) => (
-        <div key={subtask.id}>
+      {subtasks.map((subtask, idx) => (
+        <div key={subtask.id} draggable={nestingLevel === 0} onDragStart={(e) => nestingLevel === 0 && handleDragStart(e, idx)} onDragOver={(e) => nestingLevel === 0 && handleDragOver(e)} onDrop={(e) => nestingLevel === 0 && handleDrop(e, idx)}>
           <div className="flex items-center space-x-2">
             <Checkbox
               id={`subtask-${subtask.id}`}
@@ -84,6 +106,7 @@ const SubtaskList = ({
                 taskId={taskId}
                 onToggleCompletion={onToggleCompletion}
                 nestingLevel={nestingLevel + 1}
+                onReorder={undefined}
               />
             </div>
           )}
