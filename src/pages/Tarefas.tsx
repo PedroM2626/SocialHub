@@ -979,6 +979,31 @@ const Tarefas = () => {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => {
+              try {
+                const payload = { tasks, events, dateColors, highlightColor, notificationRangeValue, notificationRangeUnit }
+                const code = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+                setCodeExportString(code)
+                setIsCodeExportOpen(true)
+              } catch (err) {
+                toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao gerar o código.' })
+              }
+            }}
+            className="w-full sm:w-auto"
+          >
+            Gerar Código
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCodeImportOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            Importar Código
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleMigrateLocalToSupabase}
             className="w-full sm:w-auto"
           >
