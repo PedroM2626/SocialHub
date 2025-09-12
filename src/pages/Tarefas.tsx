@@ -1162,6 +1162,7 @@ const Tarefas = () => {
                 >
                   <option value="hours">horas</option>
                   <option value="days">dias</option>
+                  <option value="weeks">semanas</option>
                   <option value="months">meses</option>
                 </select>
                 <Button
