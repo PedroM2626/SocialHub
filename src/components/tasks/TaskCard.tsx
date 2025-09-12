@@ -128,8 +128,13 @@ export const TaskCard = ({
   const progress =
     total > 0 ? (completed / total) * 100 : task.is_completed ? 100 : 0
 
-  const titleAlignClass = `text-${task.titleAlignment || 'left'}`
-  const descriptionAlignClass = `text-${task.descriptionAlignment || 'left'}`
+  const alignMap: Record<string, string> = {
+    left: 'text-left',
+    center: 'text-center',
+    right: 'text-right',
+  }
+  const titleAlignClass = alignMap[task.titleAlignment || 'left']
+  const descriptionAlignClass = alignMap[task.descriptionAlignment || 'left']
 
   // Render a compact, fixed-height card. Clicking opens a modal with full details.
   return (
