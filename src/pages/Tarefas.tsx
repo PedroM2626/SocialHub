@@ -1131,6 +1131,50 @@ const Tarefas = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isCodeExportOpen} onOpenChange={setIsCodeExportOpen}>
+        <DialogContent className="glass-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Código de Exportação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Copie o código abaixo e guarde em local seguro. Você pode colá-lo em "Importar Código" para restaurar os dados.</p>
+            <textarea readOnly value={codeExportString} className="w-full h-40 p-2 rounded border bg-background text-sm" />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsCodeExportOpen(false)}>Fechar</Button>
+              <Button onClick={() => { navigator.clipboard?.writeText(codeExportString); toast({ title: 'Copiado', description: 'Código copiado para a área de transferência.' }) }}>Copiar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCodeImportOpen} onOpenChange={setIsCodeImportOpen}>
+        <DialogContent className="glass-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar por Código</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Cole o código gerado anteriormente e clique em "Validar" para carregar os dados.</p>
+            <textarea value={codeImportText} onChange={(e) => setCodeImportText(e.target.value)} placeholder="Cole o código aqui..." className="w-full h-40 p-2 rounded border bg-background text-sm" />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsCodeImportOpen(false)}>Cancelar</Button>
+              <Button onClick={() => {
+                try {
+                  const decoded = JSON.parse(decodeURIComponent(escape(atob(codeImportText.trim()))))
+                  setImportPreview(decoded)
+                  setImportReplaceTasks(true)
+                  setImportReplaceEvents(true)
+                  setIsCodeImportOpen(false)
+                  setIsImportDialogOpen(true)
+                } catch (err) {
+                  console.error('Failed to parse code import', err)
+                  toast({ variant: 'destructive', title: 'Código inválido', description: 'O código fornecido não pôde ser decodificado.' })
+                }
+              }}>Validar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
