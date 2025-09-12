@@ -150,6 +150,10 @@ const Tarefas = () => {
   const [importPreview, setImportPreview] = useState<any | null>(null)
   const [importReplaceTasks, setImportReplaceTasks] = useState(true)
   const [importReplaceEvents, setImportReplaceEvents] = useState(true)
+  const [isCodeExportOpen, setIsCodeExportOpen] = useState(false)
+  const [codeExportString, setCodeExportString] = useState('')
+  const [isCodeImportOpen, setIsCodeImportOpen] = useState(false)
+  const [codeImportText, setCodeImportText] = useState('')
 
   // helper merge functions for import
   const mergeTasks = (existing: any[], incoming: any[]) => {
