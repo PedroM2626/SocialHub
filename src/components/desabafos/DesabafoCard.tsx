@@ -178,34 +178,32 @@ export const DesabafoCard = ({
           </div>
         </div>
         {isOwner && (
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <AlertDialog>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="ml-auto">
-                    <MoreHorizontal className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    <AlertDialogTrigger asChild>
-                      <span className="flex items-center w-full">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                      </span>
-                    </AlertDialogTrigger>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="ml-auto">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => setIsDeleteAlertOpen(true)}
+                >
+                  <span className="flex items-center w-full">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogContent className="glass-card">
                 <DialogHeader>
                   <DialogTitle>Editar Desabafo</DialogTitle>
@@ -229,6 +227,9 @@ export const DesabafoCard = ({
                   <Button onClick={handleUpdate}>Salvar Alterações</Button>
                 </div>
               </DialogContent>
+            </Dialog>
+
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
@@ -245,7 +246,7 @@ export const DesabafoCard = ({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </Dialog>
+          </>
         )}
       </CardHeader>
       <CardContent className="px-4 pb-2">
