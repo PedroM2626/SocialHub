@@ -1657,7 +1657,9 @@ const Tarefas = () => {
                         ? Math.ceil(diffMs / (1000 * 60 * 60))
                         : notificationRangeUnit === 'months'
                           ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
-                          : Math.ceil(
+                          : notificationRangeUnit === 'weeks'
+                            ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7))
+                            : Math.ceil(
                               (item.date.getTime() -
                                 new Date().setHours(0, 0, 0, 0)) /
                                 (1000 * 60 * 60 * 24),
