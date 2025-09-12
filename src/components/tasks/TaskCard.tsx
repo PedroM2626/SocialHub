@@ -282,7 +282,7 @@ export const TaskCard = ({
 
       {/* View dialog with full details */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
+        <DialogContent full className="glass-card">
           <DialogHeader>
             <DialogTitle>{/* title */}</DialogTitle>
           </DialogHeader>
