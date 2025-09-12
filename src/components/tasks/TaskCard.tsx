@@ -297,11 +297,12 @@ export const TaskCard = ({
                 <h4 className="text-sm font-medium">Subtarefas</h4>
                 <div className="mt-2">
                   <SubtaskList
-                    subtasks={task.subtasks}
-                    taskId={task.id}
-                    onToggleCompletion={onToggleCompletion}
-                    nestingLevel={0}
-                  />
+                  subtasks={task.subtasks}
+                  taskId={task.id}
+                  onToggleCompletion={onToggleCompletion}
+                  nestingLevel={0}
+                  onReorder={(next) => onReorderSubtasks && onReorderSubtasks(task.id, next)}
+                />
                 </div>
               </div>
             )}
