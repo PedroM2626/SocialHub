@@ -70,6 +70,7 @@ export const DesabafoCard = ({
     desabafo.hashtags.join(' '),
   )
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false)
   const [localReactions, setLocalReactions] = useState(desabafo.reactions)
   const [userReaction, setUserReaction] = useState<string | null>(null)
   const [showComments, setShowComments] = useState(false)
