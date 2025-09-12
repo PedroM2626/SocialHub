@@ -33,6 +33,7 @@ interface TaskCardProps {
   onUpdate: (taskId: string, data: TaskFormValues) => void
   onToggleCompletion: (taskId: string, subtaskId?: string) => void
   onDelete: (taskId: string) => void
+  onReorderSubtasks?: (taskId: string, next: Subtask[]) => void
 }
 
 const priorityVariant: Record<Task['priority'], string> = {
