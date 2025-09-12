@@ -251,7 +251,7 @@ const Tarefas = () => {
     },
   )
   const [notificationRangeUnit, setNotificationRangeUnit] = useState<
-    'hours' | 'days' | 'months'
+    'hours' | 'days' | 'weeks' | 'months'
   >(() => {
     try {
       return (
