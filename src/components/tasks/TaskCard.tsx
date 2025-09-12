@@ -288,8 +288,8 @@ export const TaskCard = ({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-medium" dangerouslySetInnerHTML={{ __html: task.title }} />
-              <div className="text-sm text-muted-foreground mt-1" dangerouslySetInnerHTML={{ __html: task.description }} />
+              <h3 className={cn('text-lg font-medium', titleAlignClass)} dangerouslySetInnerHTML={{ __html: task.title }} />
+              <div className={cn('text-sm text-muted-foreground mt-1', descriptionAlignClass)} dangerouslySetInnerHTML={{ __html: task.description }} />
             </div>
 
             {task.subtasks.length > 0 && (
