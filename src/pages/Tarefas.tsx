@@ -1099,6 +1099,32 @@ const Tarefas = () => {
                     </Button>
                   </div>
                 </div>
+                <div className="mt-3 max-h-52 overflow-auto rounded bg-accent/30 p-2">
+                  <ul className="space-y-1">
+                    {(importPreview.tasks || []).slice(0, 10).map((t: any, i: number) => {
+                      const plainTitle = String(t.title || '').replace(/<[^>]*>?/gm, '')
+                      const due = t.due_date ? new Date(t.due_date) : null
+                      const subCount = (() => {
+                        const countNested = (arr: any[]): number => (arr || []).reduce((acc, s) => acc + 1 + countNested(s.subtasks || []), 0)
+                        return countNested(t.subtasks || [])
+                      })()
+                      return (
+                        <li key={(t.id || i) + '-preview'} className="text-xs flex items-center justify-between gap-2">
+                          <div className="truncate">
+                            <span className="font-medium">{plainTitle || 'Sem título'}</span>
+                            {due && !isNaN(due.getTime()) && (
+                              <span className="text-muted-foreground ml-2">({due.toLocaleDateString()})</span>
+                            )}
+                          </div>
+                          <div className="text-muted-foreground whitespace-nowrap">{subCount} subtarefas</div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {(importPreview.tasks || []).length > 10 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">+ {(importPreview.tasks || []).length - 10} mais…</div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1119,6 +1145,27 @@ const Tarefas = () => {
                       Acrescentar
                     </Button>
                   </div>
+                </div>
+                <div className="mt-3 max-h-52 overflow-auto rounded bg-accent/30 p-2">
+                  <ul className="space-y-1">
+                    {(importPreview.events || []).slice(0, 10).map((e: any, i: number) => {
+                      const when = e.date ? new Date(e.date) : null
+                      return (
+                        <li key={(e.id || i) + '-ev'} className="text-xs flex items-center justify-between gap-2">
+                          <div className="truncate">
+                            <span className="font-medium">{e.title || 'Sem título'}</span>
+                            {when && !isNaN(when.getTime()) && (
+                              <span className="text-muted-foreground ml-2">({when.toLocaleString()})</span>
+                            )}
+                          </div>
+                          <div className="text-muted-foreground whitespace-nowrap">{e.color ? 'cor definida' : 'sem cor'}</div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {(importPreview.events || []).length > 10 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">+ {(importPreview.events || []).length - 10} mais…</div>
+                  )}
                 </div>
               </div>
             )}
