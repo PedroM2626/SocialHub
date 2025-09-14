@@ -25,7 +25,13 @@ import { Label } from '@/components/ui/label'
 import { Input as UiInput } from '@/components/ui/input'
 import { tasks as mockTasks } from '@/lib/mock-data'
 import { TaskCard } from '@/components/tasks/TaskCard'
-import { getTasks, createTask, updateTask, deleteTask } from '@/lib/db'
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+  syncLocalToSupabase,
+} from '@/lib/db'
 import {
   Popover,
   PopoverContent,
@@ -42,6 +48,55 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 
 const Tarefas = () => {
+  // Event date helpers: store as date-only 'YYYY-MM-DD' string to avoid timezone issues.
+  function toDateKey(d: any) {
+    if (!d) return ''
+    if (d instanceof Date && typeof d.toDateString === 'function')
+      return d.toDateString()
+    // Try parse with parseEventDate (handles YYYY-MM-DD and ISO)
+    try {
+      const parsed = parseEventDate(d)
+      if (parsed) return parsed.toDateString()
+      const maybe = new Date(d)
+      if (!isNaN(maybe.getTime())) return maybe.toDateString()
+    } catch (_) {}
+    return String(d)
+  }
+  function pad(n: number) {
+    return n < 10 ? '0' + n : String(n)
+  }
+  function formatDateISODateOnly(d: Date) {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  }
+  function parseEventDate(
+    rawDate: string | Date | undefined | null,
+  ): Date | null {
+    if (!rawDate) return null
+    if (rawDate instanceof Date) {
+      return new Date(
+        rawDate.getFullYear(),
+        rawDate.getMonth(),
+        rawDate.getDate(),
+      )
+    }
+    const s = String(rawDate)
+    const dateOnlyMatch = s.match(/^\d{4}-\d{2}-\d{2}$/)
+    if (dateOnlyMatch) {
+      const [y, m, d] = s.split('-').map((n) => parseInt(n, 10))
+      return new Date(y, m - 1, d)
+    }
+    // try parsing full ISO-like string and convert to local date
+    const parsed = new Date(s)
+    if (!isNaN(parsed.getTime())) {
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+    }
+    return null
+  }
+  function normalizeEventDate(rawDate: string | Date | undefined | null) {
+    const d = parseEventDate(rawDate)
+    if (!d) return null
+    return formatDateISODateOnly(d)
+  }
   const { user } = useAuth()
   const userId = user?.id
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
@@ -90,6 +145,38 @@ const Tarefas = () => {
   const { toast } = useToast()
   const fileImportRef = useRef<HTMLInputElement>(null)
 
+  // Import preview/dialog state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [importPreview, setImportPreview] = useState<any | null>(null)
+  const [importReplaceTasks, setImportReplaceTasks] = useState(true)
+  const [importReplaceEvents, setImportReplaceEvents] = useState(true)
+  const [isCodeExportOpen, setIsCodeExportOpen] = useState(false)
+  const [codeExportString, setCodeExportString] = useState('')
+  const [isCodeImportOpen, setIsCodeImportOpen] = useState(false)
+  const [codeImportText, setCodeImportText] = useState('')
+
+  // helper merge functions for import
+  const mergeTasks = (existing: any[], incoming: any[]) => {
+    const map: Record<string, any> = {}
+    const keyFor = (t: any) =>
+      t.id || `${(t.title || '').toLowerCase()}::${t.due_date || ''}`
+    for (const t of existing || []) map[keyFor(t)] = t
+    for (const t of incoming || []) map[keyFor(t)] = t
+    return Object.values(map)
+  }
+  const mergeEvents = (existing: any[], incoming: any[]) => {
+    const map: Record<string, any> = {}
+    const keyFor = (ev: any) =>
+      ev.id ||
+      `${(ev.title || '').toLowerCase()}::${normalizeEventDate(ev.date) || ev.date}`
+    for (const ev of existing || []) map[keyFor(ev)] = ev
+    for (const ev of incoming || []) {
+      const normalized = { ...ev, date: normalizeEventDate(ev.date) || ev.date }
+      map[keyFor(normalized)] = normalized
+    }
+    return Object.values(map)
+  }
+
   // Calendar and events state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [events, setEvents] = useState<
@@ -104,7 +191,14 @@ const Tarefas = () => {
   >(() => {
     try {
       const raw = localStorage.getItem('local:events')
-      return raw ? JSON.parse(raw) : []
+      const parsed = raw ? JSON.parse(raw) : []
+      if (Array.isArray(parsed)) {
+        return parsed.map((ev: any) => ({
+          ...ev,
+          date: normalizeEventDate(ev.date) || ev.date,
+        }))
+      }
+      return []
     } catch {
       return []
     }
@@ -164,7 +258,7 @@ const Tarefas = () => {
     },
   )
   const [notificationRangeUnit, setNotificationRangeUnit] = useState<
-    'hours' | 'days' | 'months'
+    'hours' | 'days' | 'weeks' | 'months'
   >(() => {
     try {
       return (
@@ -175,12 +269,124 @@ const Tarefas = () => {
     }
   })
 
+  // helper to normalize and persist events
+  function saveEvents(next: any[]) {
+    // Ensure we never store Date objects and always persist as YYYY-MM-DD strings
+    const normalized = next.map((ev: any) => ({
+      id: ev.id,
+      title: ev.title,
+      date: normalizeEventDate(ev.date) || String(ev.date || ''),
+      color: ev.color || undefined,
+      start_time: ev.start_time || '',
+      end_time: ev.end_time || '',
+    }))
+    try {
+      localStorage.setItem('local:events', JSON.stringify(normalized))
+      // also keep console log for debugging persistence issues
+      console.debug('[Tarefas] saveEvents persisted', normalized)
+    } catch (e) {
+      console.error('[Tarefas] saveEvents failed to persist', e)
+    }
+    setEvents(normalized)
+  }
+
+  // one-time migration: normalize + dedupe local:events and push to Supabase
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('local:events')
+      if (!raw) return
+      let arr = JSON.parse(raw)
+      if (!Array.isArray(arr)) return
+      // normalize dates
+      arr = arr.map((ev: any) => ({
+        ...ev,
+        date: normalizeEventDate(ev.date) || ev.date,
+      }))
+      // dedupe by id, prefer latest by timestamp
+      const byId: Record<string, any> = {}
+      for (const ev of arr) {
+        if (!ev.id)
+          ev.id = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        if (!byId[ev.id]) byId[ev.id] = ev
+        else {
+          try {
+            const a = new Date(byId[ev.id].date)
+            const b = new Date(ev.date)
+            if (b.getTime() > a.getTime()) byId[ev.id] = ev
+          } catch {
+            byId[ev.id] = ev
+          }
+        }
+      }
+      const deduped = Object.values(byId)
+      // also dedupe by title+date to avoid duplicates if ids missing
+      const seen: Record<string, any> = {}
+      const final: any[] = []
+      for (const ev of deduped) {
+        const key = `${ev.title?.toLowerCase() || ''}::${parseEventDate(ev.date)?.toDateString() || String(ev.date)}`
+        if (!seen[key]) {
+          seen[key] = true
+          final.push(ev)
+        }
+      }
+      // persist normalized/deduped
+      saveEvents(final)
+      // attempt to sync to Supabase for current user
+      try {
+        syncLocalToSupabase().catch((e) =>
+          console.warn('[Tarefas] syncLocalToSupabase failed', e),
+        )
+      } catch (e) {}
+    } catch (err) {
+      console.warn('[Tarefas] one-time event migration failed', err)
+    }
+  }, [])
+
+  // Ensure events are loaded from localStorage on mount if current state is empty
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('local:events')
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      // If current events are empty (e.g., due to earlier errors), restore from storage
+      if (!events || events.length === 0) {
+        const normalized = parsed.map((ev: any) => ({
+          ...ev,
+          date: normalizeEventDate(ev.date) || ev.date,
+        }))
+        setEvents(normalized)
+        console.debug('[Tarefas] restored events from localStorage', normalized)
+      }
+    } catch (e) {
+      console.warn('[Tarefas] failed to restore events from localStorage', e)
+    }
+  }, [])
+
   // persist events/dateColors/highlightColor/notificationRange
   useEffect(() => {
     try {
-      localStorage.setItem('local:events', JSON.stringify(events))
+      // ensure events in storage are normalized
+      const normalized = events.map((ev: any) => ({
+        ...ev,
+        date: normalizeEventDate(ev.date) || ev.date,
+      }))
+      localStorage.setItem('local:events', JSON.stringify(normalized))
     } catch {}
   }, [events])
+
+  // persist tasks locally so user edits survive refresh when backend is flaky
+  useEffect(() => {
+    try {
+      const normalized = tasks.map((t: any) => ({
+        ...t,
+        due_date: normalizeEventDate(t.due_date) || t.due_date || null,
+      }))
+      localStorage.setItem('local:tasks', JSON.stringify(normalized))
+    } catch (e) {
+      console.warn('Failed to persist local tasks', e)
+    }
+  }, [tasks])
 
   useEffect(() => {
     try {
@@ -441,62 +647,26 @@ const Tarefas = () => {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string
-        const imported = JSON.parse(text)
+        const parsed = JSON.parse(text)
+        // normalize to object with optional tasks/events
+        let preview: any = null
+        if (Array.isArray(parsed)) preview = { tasks: parsed }
+        else if (parsed && typeof parsed === 'object') preview = parsed
+        else throw new Error('Formato inválido')
 
-        if (Array.isArray(imported)) {
-          setTasks(imported)
-          toast({ title: 'Sucesso!', description: 'Tarefas importadas.' })
-        } else if (imported && typeof imported === 'object') {
-          if (imported.tasks) setTasks(imported.tasks)
-          if (imported.events) setEvents(imported.events)
-          if (imported.dateColors) setDateColors(imported.dateColors)
-          if (imported.highlightColor)
-            setHighlightColor(imported.highlightColor)
-          if (typeof imported.notificationRangeValue === 'number')
-            setNotificationRangeValue(imported.notificationRangeValue)
-          else if (imported.notificationRangeDays)
-            setNotificationRangeValue(imported.notificationRangeDays)
-          if (imported.notificationRangeUnit)
-            setNotificationRangeUnit(imported.notificationRangeUnit)
-
-          try {
-            localStorage.setItem(
-              'local:events',
-              JSON.stringify(imported.events || []),
-            )
-          } catch {}
-          try {
-            localStorage.setItem(
-              'local:dateColors',
-              JSON.stringify(imported.dateColors || {}),
-            )
-          } catch {}
-          try {
-            localStorage.setItem(
-              'local:highlightColor',
-              imported.highlightColor || '',
-            )
-          } catch {}
-          try {
-            localStorage.setItem(
-              'local:notificationRangeValue',
-              String(
-                imported.notificationRangeValue ||
-                  imported.notificationRangeDays ||
-                  notificationRangeValue,
-              ),
-            )
-            if (imported.notificationRangeUnit)
-              localStorage.setItem(
-                'local:notificationRangeUnit',
-                imported.notificationRangeUnit,
-              )
-          } catch {}
-
-          toast({ title: 'Sucesso!', description: 'Dados importados.' })
-        } else {
-          throw new Error('Formato inválido')
+        // normalize events dates for preview
+        if (preview.events) {
+          preview.events = (preview.events || []).map((ev: any) => ({
+            ...ev,
+            date: normalizeEventDate(ev.date) || ev.date,
+          }))
         }
+
+        setImportPreview(preview)
+        // default choices: replace tasks/events
+        setImportReplaceTasks(true)
+        setImportReplaceEvents(true)
+        setIsImportDialogOpen(true)
       } catch (error) {
         console.error('Import failed', error)
         toast({
@@ -507,8 +677,84 @@ const Tarefas = () => {
       }
     }
     reader.readAsText(file)
-    if (fileImportRef.current) {
-      fileImportRef.current.value = ''
+  }
+
+  const applyImport = (replaceTasks: boolean, replaceEvents: boolean) => {
+    if (!importPreview) return
+    try {
+      if (importPreview.tasks) {
+        if (replaceTasks) {
+          setTasks(importPreview.tasks)
+        } else {
+          setTasks((prev) => mergeTasks(prev, importPreview.tasks))
+        }
+      }
+      if (importPreview.events) {
+        if (replaceEvents) {
+          saveEvents(importPreview.events)
+        } else {
+          const merged = mergeEvents(events, importPreview.events)
+          saveEvents(merged)
+        }
+      }
+
+      if (importPreview.dateColors) {
+        setDateColors(importPreview.dateColors)
+        try {
+          localStorage.setItem(
+            'local:dateColors',
+            JSON.stringify(importPreview.dateColors || {}),
+          )
+        } catch {}
+      }
+      if (importPreview.highlightColor) {
+        setHighlightColor(importPreview.highlightColor)
+        try {
+          localStorage.setItem(
+            'local:highlightColor',
+            importPreview.highlightColor || '',
+          )
+        } catch {}
+      }
+      if (typeof importPreview.notificationRangeValue === 'number') {
+        setNotificationRangeValue(importPreview.notificationRangeValue)
+        try {
+          localStorage.setItem(
+            'local:notificationRangeValue',
+            String(importPreview.notificationRangeValue),
+          )
+        } catch {}
+      } else if (importPreview.notificationRangeDays) {
+        setNotificationRangeValue(importPreview.notificationRangeDays)
+        try {
+          localStorage.setItem(
+            'local:notificationRangeValue',
+            String(importPreview.notificationRangeDays),
+          )
+        } catch {}
+      }
+      if (importPreview.notificationRangeUnit) {
+        setNotificationRangeUnit(importPreview.notificationRangeUnit)
+        try {
+          localStorage.setItem(
+            'local:notificationRangeUnit',
+            importPreview.notificationRangeUnit,
+          )
+        } catch {}
+      }
+
+      toast({ title: 'Sucesso!', description: 'Dados importados.' })
+    } catch (err) {
+      console.error('applyImport failed', err)
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao aplicar importação.',
+      })
+    } finally {
+      setIsImportDialogOpen(false)
+      setImportPreview(null)
+      if (fileImportRef.current) fileImportRef.current.value = ''
     }
   }
 
@@ -659,16 +905,13 @@ const Tarefas = () => {
     const newEvent = {
       id: `evt-${Date.now()}`,
       title: eventTitle,
-      date: selectedDate.toISOString(),
+      date: normalizeEventDate(selectedDate)!,
       color: defaultColor,
       start_time: createEventStartTime || '',
       end_time: createEventEndTime || '',
     }
     const next = [newEvent, ...events]
-    setEvents(next)
-    try {
-      localStorage.setItem('local:events', JSON.stringify(next))
-    } catch {}
+    saveEvents(next)
     setEventTitle('')
     setCreateEventColor(undefined)
     setCreateEventStartTime('')
@@ -762,6 +1005,44 @@ const Tarefas = () => {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => {
+              try {
+                const payload = {
+                  tasks,
+                  events,
+                  dateColors,
+                  highlightColor,
+                  notificationRangeValue,
+                  notificationRangeUnit,
+                }
+                const code = btoa(
+                  unescape(encodeURIComponent(JSON.stringify(payload))),
+                )
+                setCodeExportString(code)
+                setIsCodeExportOpen(true)
+              } catch (err) {
+                toast({
+                  variant: 'destructive',
+                  title: 'Erro',
+                  description: 'Falha ao gerar o código.',
+                })
+              }
+            }}
+            className="w-full sm:w-auto"
+          >
+            Gerar Código
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCodeImportOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            Importar Código
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleMigrateLocalToSupabase}
             className="w-full sm:w-auto"
           >
@@ -826,6 +1107,267 @@ const Tarefas = () => {
           </PopoverContent>
         </Popover>
       </div>
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="glass-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar JSON</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Revise as opções abaixo antes de aplicar a importação.
+            </p>
+            {importPreview?.tasks && (
+              <div className="p-3 border rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Tarefas</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(importPreview.tasks || []).length} tarefas encontradas
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceTasks(true)}
+                      variant={importReplaceTasks ? undefined : 'outline'}
+                    >
+                      Substituir
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceTasks(false)}
+                      variant={!importReplaceTasks ? undefined : 'outline'}
+                    >
+                      Acrescentar
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3 max-h-52 overflow-auto rounded bg-accent/30 p-2">
+                  <ul className="space-y-1">
+                    {(importPreview.tasks || [])
+                      .slice(0, 10)
+                      .map((t: any, i: number) => {
+                        const plainTitle = String(t.title || '').replace(
+                          /<[^>]*>?/gm,
+                          '',
+                        )
+                        const due = t.due_date ? new Date(t.due_date) : null
+                        const subCount = (() => {
+                          const countNested = (arr: any[]): number =>
+                            (arr || []).reduce(
+                              (acc, s) =>
+                                acc + 1 + countNested(s.subtasks || []),
+                              0,
+                            )
+                          return countNested(t.subtasks || [])
+                        })()
+                        return (
+                          <li
+                            key={(t.id || i) + '-preview'}
+                            className="text-xs flex items-center justify-between gap-2"
+                          >
+                            <div className="truncate">
+                              <span className="font-medium">
+                                {plainTitle || 'Sem título'}
+                              </span>
+                              {due && !isNaN(due.getTime()) && (
+                                <span className="text-muted-foreground ml-2">
+                                  ({due.toLocaleDateString()})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-muted-foreground whitespace-nowrap">
+                              {subCount} subtarefas
+                            </div>
+                          </li>
+                        )
+                      })}
+                  </ul>
+                  {(importPreview.tasks || []).length > 10 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      + {(importPreview.tasks || []).length - 10} mais…
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {importPreview?.events && (
+              <div className="p-3 border rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Eventos</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(importPreview.events || []).length} eventos encontrados
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceEvents(true)}
+                      variant={importReplaceEvents ? undefined : 'outline'}
+                    >
+                      Substituir
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceEvents(false)}
+                      variant={!importReplaceEvents ? undefined : 'outline'}
+                    >
+                      Acrescentar
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3 max-h-52 overflow-auto rounded bg-accent/30 p-2">
+                  <ul className="space-y-1">
+                    {(importPreview.events || [])
+                      .slice(0, 10)
+                      .map((e: any, i: number) => {
+                        const when = e.date ? new Date(e.date) : null
+                        return (
+                          <li
+                            key={(e.id || i) + '-ev'}
+                            className="text-xs flex items-center justify-between gap-2"
+                          >
+                            <div className="truncate">
+                              <span className="font-medium">
+                                {e.title || 'Sem título'}
+                              </span>
+                              {when && !isNaN(when.getTime()) && (
+                                <span className="text-muted-foreground ml-2">
+                                  ({when.toLocaleString()})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-muted-foreground whitespace-nowrap">
+                              {e.color ? 'cor definida' : 'sem cor'}
+                            </div>
+                          </li>
+                        )
+                      })}
+                  </ul>
+                  {(importPreview.events || []).length > 10 && (
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      + {(importPreview.events || []).length - 10} mais…
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsImportDialogOpen(false)
+                  setImportPreview(null)
+                  if (fileImportRef.current) fileImportRef.current.value = ''
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() =>
+                  applyImport(importReplaceTasks, importReplaceEvents)
+                }
+              >
+                Aplicar Importação
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCodeExportOpen} onOpenChange={setIsCodeExportOpen}>
+        <DialogContent className="glass-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Código de Exportação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Copie o código abaixo e guarde em local seguro. Você pode colá-lo
+              em "Importar Código" para restaurar os dados.
+            </p>
+            <textarea
+              readOnly
+              value={codeExportString}
+              className="w-full h-40 p-2 rounded border bg-background text-sm"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsCodeExportOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard?.writeText(codeExportString)
+                  toast({
+                    title: 'Copiado',
+                    description: 'Código copiado para a área de transferência.',
+                  })
+                }}
+              >
+                Copiar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCodeImportOpen} onOpenChange={setIsCodeImportOpen}>
+        <DialogContent className="glass-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar por Código</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Cole o código gerado anteriormente e clique em "Validar" para
+              carregar os dados.
+            </p>
+            <textarea
+              value={codeImportText}
+              onChange={(e) => setCodeImportText(e.target.value)}
+              placeholder="Cole o código aqui..."
+              className="w-full h-40 p-2 rounded border bg-background text-sm"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsCodeImportOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  try {
+                    const decoded = JSON.parse(
+                      decodeURIComponent(escape(atob(codeImportText.trim()))),
+                    )
+                    setImportPreview(decoded)
+                    setImportReplaceTasks(true)
+                    setImportReplaceEvents(true)
+                    setIsCodeImportOpen(false)
+                    setIsImportDialogOpen(true)
+                  } catch (err) {
+                    console.error('Failed to parse code import', err)
+                    toast({
+                      variant: 'destructive',
+                      title: 'Código inválido',
+                      description:
+                        'O código fornecido não pôde ser decodificado.',
+                    })
+                  }
+                }}
+              >
+                Validar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="glass-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -886,6 +1428,7 @@ const Tarefas = () => {
                 >
                   <option value="hours">horas</option>
                   <option value="days">dias</option>
+                  <option value="weeks">semanas</option>
                   <option value="months">meses</option>
                 </select>
                 <Button
@@ -901,6 +1444,34 @@ const Tarefas = () => {
                 >
                   Agendar
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={async () => {
+                    try {
+                      toast({
+                        title: 'Iniciando migração',
+                        description: 'Enviando eventos locais para Supabase...',
+                      })
+                      await syncLocalToSupabase(userId)
+                      toast({
+                        title: 'Migração concluída',
+                        description:
+                          'Eventos locais foram migrados (se existirem).',
+                      })
+                    } catch (err) {
+                      console.error('Force migrate events failed', err)
+                      toast({
+                        variant: 'destructive',
+                        title: 'Migração falhou',
+                        description: String(err),
+                      })
+                    }
+                  }}
+                >
+                  Forçar migrar eventos
+                </Button>
               </div>
             </div>
             <Calendar
@@ -910,10 +1481,11 @@ const Tarefas = () => {
               components={{
                 DayButton: (props) => {
                   const day = props.day
-                  const key = day ? new Date(day).toDateString() : ''
-                  const eventForDay = events.find(
-                    (e) => new Date(e.date).toDateString() === key,
-                  )
+                  const key = day ? toDateKey(day) : ''
+                  const eventForDay = events.find((e) => {
+                    const ed = parseEventDate(e.date)
+                    return ed ? toDateKey(ed) === key : false
+                  })
                   const color =
                     (eventForDay && eventForDay.color) ||
                     (key && dateColors[key] ? dateColors[key] : null)
@@ -922,9 +1494,10 @@ const Tarefas = () => {
                       t.due_date &&
                       new Date(t.due_date as any).toDateString() === key,
                   ).length
-                  const eventsCount = events.filter(
-                    (e) => new Date(e.date).toDateString() === key,
-                  ).length
+                  const eventsCount = events.filter((e) => {
+                    const ed = parseEventDate(e.date)
+                    return ed ? toDateKey(ed) === key : false
+                  }).length
                   const count = tasksCount + eventsCount
                   const hasItem = count > 0
 
@@ -1041,6 +1614,8 @@ const Tarefas = () => {
                         return Math.ceil(diffMs / (1000 * 60 * 60))
                       if (notificationRangeUnit === 'months')
                         return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                      if (notificationRangeUnit === 'weeks')
+                        return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7))
                       return Math.ceil(
                         (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
                           (1000 * 60 * 60 * 24),
@@ -1058,7 +1633,22 @@ const Tarefas = () => {
                             <div className="text-sm font-medium">{t.title}</div>
                             {within && (
                               <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
-                                Vence em {daysUntil}d
+                                Vence em{' '}
+                                {(() => {
+                                  if (typeof target === 'undefined')
+                                    return 'N/A'
+                                  const diffMs =
+                                    target.getTime() - now.getTime()
+                                  if (notificationRangeUnit === 'hours')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                  if (notificationRangeUnit === 'months')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                  return `${Math.ceil(
+                                    (target.getTime() -
+                                      new Date().setHours(0, 0, 0, 0)) /
+                                      (1000 * 60 * 60 * 24),
+                                  )}d`
+                                })()}
                               </span>
                             )}
                           </div>
@@ -1096,10 +1686,10 @@ const Tarefas = () => {
               <h4 className="text-sm font-medium">Eventos</h4>
               {events.filter((e) => {
                 if (!selectedDate) return false
-                return (
-                  new Date(e.date).toDateString() ===
-                  selectedDate.toDateString()
-                )
+                const ed = parseEventDate(e.date)
+                return ed
+                  ? ed.toDateString() === selectedDate.toDateString()
+                  : false
               }).length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhum evento neste dia.
@@ -1107,14 +1697,15 @@ const Tarefas = () => {
               ) : (
                 <ul className="mt-2 space-y-2">
                   {events
-                    .filter(
-                      (e) =>
-                        new Date(e.date).toDateString() ===
-                        selectedDate?.toDateString(),
-                    )
+                    .filter((e) => {
+                      const ed = parseEventDate(e.date)
+                      return ed
+                        ? ed.toDateString() === selectedDate?.toDateString()
+                        : false
+                    })
                     .map((e) => {
                       const target = (() => {
-                        const base = new Date(e.date)
+                        const base = parseEventDate(e.date) || new Date()
                         if ((e as any).start_time) {
                           const [hh, mm] = (e as any).start_time
                             .split(':')
@@ -1134,6 +1725,8 @@ const Tarefas = () => {
                           return Math.ceil(diffMs / (1000 * 60 * 60))
                         if (notificationRangeUnit === 'months')
                           return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+                        if (notificationRangeUnit === 'weeks')
+                          return Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7))
                         return Math.ceil(
                           (target.getTime() - new Date().setHours(0, 0, 0, 0)) /
                             (1000 * 60 * 60 * 24),
@@ -1153,7 +1746,22 @@ const Tarefas = () => {
                               </div>
                               {within && (
                                 <span className="text-[11px] px-2 py-0.5 rounded bg-destructive text-destructive-foreground">
-                                  Vence em {daysUntil}d
+                                  Vence em{' '}
+                                  {(() => {
+                                    if (typeof target === 'undefined')
+                                      return 'N/A'
+                                    const diffMs =
+                                      target.getTime() - now.getTime()
+                                    if (notificationRangeUnit === 'hours')
+                                      return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
+                                    if (notificationRangeUnit === 'months')
+                                      return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                    return `${Math.ceil(
+                                      (target.getTime() -
+                                        new Date().setHours(0, 0, 0, 0)) /
+                                        (1000 * 60 * 60 * 24),
+                                    )}d`
+                                  })()}
                                 </span>
                               )}
                             </div>
@@ -1173,17 +1781,10 @@ const Tarefas = () => {
                               size="sm"
                               variant="destructive"
                               onClick={() => {
-                                const prev = events
                                 const next = events.filter(
                                   (ev) => ev.id !== e.id,
                                 )
-                                setEvents(next)
-                                try {
-                                  localStorage.setItem(
-                                    'local:events',
-                                    JSON.stringify(next),
-                                  )
-                                } catch {}
+                                saveEvents(next)
                                 // no backend persistence required
                               }}
                             >
@@ -1226,7 +1827,7 @@ const Tarefas = () => {
                       }
                     }),
                   ...events.map((e) => {
-                    const base = new Date(e.date)
+                    const base = parseEventDate(e.date) || new Date()
                     const dt = new Date(base)
                     if ((e as any).start_time) {
                       const [hh, mm] = (e as any).start_time
@@ -1253,11 +1854,13 @@ const Tarefas = () => {
                         ? Math.ceil(diffMs / (1000 * 60 * 60))
                         : notificationRangeUnit === 'months'
                           ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
-                          : Math.ceil(
-                              (item.date.getTime() -
-                                new Date().setHours(0, 0, 0, 0)) /
-                                (1000 * 60 * 60 * 24),
-                            )
+                          : notificationRangeUnit === 'weeks'
+                            ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7))
+                            : Math.ceil(
+                                (item.date.getTime() -
+                                  new Date().setHours(0, 0, 0, 0)) /
+                                  (1000 * 60 * 60 * 24),
+                              )
                     return remaining <= notificationRangeValue && remaining >= 0
                   })
                   .sort((a, b) => +a.date - +b.date)
@@ -1303,6 +1906,8 @@ const Tarefas = () => {
                                     return `${Math.ceil(diffMs / (1000 * 60 * 60))}h`
                                   if (notificationRangeUnit === 'months')
                                     return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))}m`
+                                  if (notificationRangeUnit === 'weeks')
+                                    return `${Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7))}w`
                                   return `${Math.ceil(
                                     (u.date.getTime() -
                                       new Date().setHours(0, 0, 0, 0)) /
@@ -1355,6 +1960,39 @@ const Tarefas = () => {
                   onUpdate={handleUpdateTask}
                   onToggleCompletion={toggleCompletion}
                   onDelete={handleDeleteTask}
+                  onReorderSubtasks={(taskId, next) => {
+                    const prev = tasks.find((t) => t.id === taskId)
+                    setTasks((ps) =>
+                      ps.map((p) =>
+                        p.id === taskId ? { ...p, subtasks: next } : p,
+                      ),
+                    )
+                    ;(async () => {
+                      try {
+                        const ok = await updateTask(
+                          taskId,
+                          { subtasks: next },
+                          userId,
+                        )
+                        if (!ok) throw new Error('Failed to persist reorder')
+                        toast({
+                          title: 'Sucesso',
+                          description: 'Subtarefas reorganizadas.',
+                        })
+                      } catch (err) {
+                        console.error('Failed to persist reorder', err)
+                        if (prev)
+                          setTasks((ps) =>
+                            ps.map((p) => (p.id === taskId ? prev : p)),
+                          )
+                        toast({
+                          variant: 'destructive',
+                          title: 'Erro',
+                          description: 'Não foi possível salvar a nova ordem.',
+                        })
+                      }
+                    })()
+                  }}
                 />
               </div>
             ))}
@@ -1459,11 +2097,13 @@ const Tarefas = () => {
               />
               <Label>Data</Label>
               <Calendar
-                selected={new Date(editingEvent.date)}
+                selected={parseEventDate(editingEvent.date) || undefined}
                 onSelect={(d) =>
                   setEditingEvent({
                     ...editingEvent,
-                    date: (d as Date).toISOString(),
+                    date:
+                      normalizeEventDate(d as Date) ||
+                      (d as Date).toISOString(),
                   })
                 }
               />
@@ -1472,7 +2112,11 @@ const Tarefas = () => {
                 type="color"
                 value={
                   editingEvent.color ||
-                  dateColors[new Date(editingEvent.date).toDateString()] ||
+                  dateColors[
+                    (
+                      parseEventDate(editingEvent.date) || new Date()
+                    ).toDateString()
+                  ] ||
                   highlightColor
                 }
                 onChange={(e) =>
@@ -1514,10 +2158,7 @@ const Tarefas = () => {
                     const next = events.filter(
                       (ev) => ev.id !== editingEvent.id,
                     )
-                    setEvents(next)
-                    try {
-                      localStorage.setItem('local:events', JSON.stringify(next))
-                    } catch {}
+                    saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)
                   }}
@@ -1535,13 +2176,17 @@ const Tarefas = () => {
                 </Button>
                 <Button
                   onClick={() => {
+                    // Ensure editingEvent.date is normalized before saving
+                    const normalizedEdit = {
+                      ...editingEvent,
+                      date:
+                        normalizeEventDate(editingEvent.date) ||
+                        String(editingEvent.date),
+                    }
                     const next = events.map((ev) =>
-                      ev.id === editingEvent.id ? editingEvent : ev,
+                      ev.id === editingEvent.id ? normalizedEdit : ev,
                     )
-                    setEvents(next)
-                    try {
-                      localStorage.setItem('local:events', JSON.stringify(next))
-                    } catch {}
+                    saveEvents(next)
                     setIsEditEventOpen(false)
                     setEditingEvent(null)
                   }}

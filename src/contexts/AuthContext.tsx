@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User as AppUser } from '@/lib/types'
-import { getUserById, getUsers, getUserByEmail, createUser, updateUser } from '@/lib/db'
+import { getUserById, getUsers, getUserByEmail, createUser, updateUser, syncLocalToSupabase } from '@/lib/db'
 import { users as mockUsers } from '@/lib/mock-data'
 
 interface MockSession {
@@ -45,6 +45,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (dbUser && mounted) {
               setUser(dbUser)
               setSession(savedSession)
+              try {
+                syncLocalToSupabase(dbUser.id).catch((e) =>
+                  console.warn('[Auth] syncLocalToSupabase failed', e),
+                )
+              } catch (e) {}
             } else if (mounted) {
               localStorage.removeItem('socialhub_session')
             }
@@ -77,6 +82,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
+  // Always attempt a background sync on app load (push any anonymous fallbacks)
+  useEffect(() => {
+    try {
+      syncLocalToSupabase().catch((e) =>
+        console.warn('[Auth] syncLocalToSupabase (anonymous) failed', e),
+      )
+    } catch (e) {}
+  }, [])
+
   const login = async (email: string, password: string) => {
     console.log('[Auth] login start', { email })
     // Try DB first
@@ -100,6 +114,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('socialhub_session', JSON.stringify(newSession))
       setUser(foundUser)
       setSession(newSession)
+      try {
+        syncLocalToSupabase(foundUser.id).catch((e) =>
+          console.warn('[Auth] syncLocalToSupabase failed', e),
+        )
+      } catch (e) {}
       console.log('[Auth] login success, navigating')
       navigate('/')
     } else {
@@ -147,6 +166,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('socialhub_session', JSON.stringify(newSession))
     setUser(newUser)
     setSession(newSession)
+    try {
+      syncLocalToSupabase(newUser.id).catch((e) =>
+        console.warn('[Auth] syncLocalToSupabase failed', e),
+      )
+    } catch (e) {}
     navigate('/')
   }
 

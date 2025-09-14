@@ -11,22 +11,22 @@ async function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
   ])
 }
 
-// Runtime feature detection: check if tasks.user_id column exists
+// Runtime feature detection: only check if tasks.user_id exists to optionally scope queries by user.
+// Optional UI-only fields (backgroundColor, borderStyle, attachments, titleAlignment, descriptionAlignment)
+// default to false to avoid making failing column checks that cause 400s in the network tab.
 let TASKS_HAS_USER_ID: boolean | null = null
+let TASKS_HAS_BACKGROUND_COLOR: boolean | null = false
+let TASKS_HAS_BORDER_STYLE: boolean | null = false
+let TASKS_HAS_ATTACHMENTS: boolean | null = false
+let TASKS_HAS_TITLE_ALIGNMENT: boolean | null = false
+let TASKS_HAS_DESCRIPTION_ALIGNMENT: boolean | null = false
 ;(async () => {
   try {
-    // Try a lightweight select of user_id; if column missing, Postgres will error
-    const { data, error } = await withTimeout(
+    const { error } = await withTimeout(
       supabase.from('tasks').select('user_id').limit(1),
     )
-    if (error) {
-      // assume missing column or no permissions; set flag false (no verbose DB error)
-      TASKS_HAS_USER_ID = false
-    } else {
-      TASKS_HAS_USER_ID = true
-    }
+    TASKS_HAS_USER_ID = !error
   } catch (_e) {
-    // assume missing column or network issue
     TASKS_HAS_USER_ID = false
   }
 })()
@@ -503,20 +503,39 @@ export async function createTask(payload: any) {
     priority: payload.priority || null,
     is_public: payload.is_public !== undefined ? payload.is_public : true,
     tags: payload.tags || [],
-    due_date: payload.due_date || null,
+    due_date:
+      payload.due_date instanceof Date
+        ? payload.due_date.toISOString()
+        : payload.due_date || null,
     start_time: payload.start_time || null,
     end_time: payload.end_time || null,
     subtasks: payload.subtasks || [],
-    backgroundColor: payload.backgroundColor || null,
-    borderStyle: payload.borderStyle || null,
   }
+
   // Only include user_id if DB supports it
   if (payload.user_id && TASKS_HAS_USER_ID === true)
     record.user_id = payload.user_id
 
+  // Only include backgroundColor and borderStyle if DB supports those columns
+  if (TASKS_HAS_BACKGROUND_COLOR === true)
+    record.backgroundColor = payload.backgroundColor || null
+  if (TASKS_HAS_BORDER_STYLE === true)
+    record.borderStyle = payload.borderStyle || null
+  // Only include attachments if DB supports it
+  if (TASKS_HAS_ATTACHMENTS === true)
+    record.attachments = payload.attachments || []
+  if (TASKS_HAS_TITLE_ALIGNMENT === true)
+    record.titleAlignment = payload.titleAlignment || null
+  if (TASKS_HAS_DESCRIPTION_ALIGNMENT === true)
+    record.descriptionAlignment = payload.descriptionAlignment || null
+
   try {
     const { data, error } = await withTimeout(
-      supabase.from('tasks').insert(record).select().single(),
+      supabase
+        .from('tasks')
+        .upsert(record, { onConflict: 'id' })
+        .select()
+        .single(),
     )
     if (error) throw error
     return data
@@ -534,7 +553,27 @@ export async function createTask(payload: any) {
 
 export async function updateTask(id: string, payload: any, userId?: string) {
   try {
-    let query = supabase.from('tasks').update(payload).eq('id', id)
+    // Sanitize payload for optional columns to avoid DB errors when columns are absent
+    const sanitized: any = { ...payload }
+    if (sanitized.due_date instanceof Date)
+      sanitized.due_date = sanitized.due_date.toISOString()
+    if (sanitized.due_date instanceof Date)
+      sanitized.due_date = sanitized.due_date.toISOString()
+    if (TASKS_HAS_BACKGROUND_COLOR !== true && 'backgroundColor' in sanitized)
+      delete sanitized.backgroundColor
+    if (TASKS_HAS_BORDER_STYLE !== true && 'borderStyle' in sanitized)
+      delete sanitized.borderStyle
+    if (TASKS_HAS_ATTACHMENTS !== true && 'attachments' in sanitized)
+      delete sanitized.attachments
+    if (TASKS_HAS_TITLE_ALIGNMENT !== true && 'titleAlignment' in sanitized)
+      delete sanitized.titleAlignment
+    if (
+      TASKS_HAS_DESCRIPTION_ALIGNMENT !== true &&
+      'descriptionAlignment' in sanitized
+    )
+      delete sanitized.descriptionAlignment
+
+    let query = supabase.from('tasks').update(sanitized).eq('id', id)
     if (userId && TASKS_HAS_USER_ID === true)
       query = query.eq('user_id', userId)
     const { error } = await withTimeout(query)
@@ -721,4 +760,186 @@ export async function createConversation(conversation: any) {
     console.warn('createConversation failed', err)
     return null
   }
+}
+
+// Expose a function to sync local fallback data (tasks/desabafos) to Supabase
+export async function syncLocalToSupabase(userId?: string) {
+  console.log('[DB] syncLocalToSupabase start', { userId })
+  // Sync tasks
+  try {
+    const localTasks = readLocalTasks()
+    if (Array.isArray(localTasks) && localTasks.length > 0) {
+      console.log(`[DB] Found ${localTasks.length} local tasks to migrate`)
+      let migrated = 0
+      for (const t of localTasks) {
+        try {
+          const payload: any = { ...t }
+          if (userId) payload.user_id = userId
+          // Normalize dates
+          if (payload.due_date && payload.due_date instanceof Date)
+            payload.due_date = payload.due_date.toISOString()
+          // Try to create; if already exists, skip
+          try {
+            const { data: existing } = await withTimeout(
+              supabase
+                .from('tasks')
+                .select('id')
+                .eq('id', payload.id)
+                .limit(1)
+                .single(),
+            )
+            if (existing && (existing as any).id) {
+              console.log('[DB] task exists, skipping', (existing as any).id)
+              continue
+            }
+          } catch (e) {
+            // ignore check errors and attempt create
+          }
+          await createTask(payload)
+          migrated++
+        } catch (err) {
+          console.warn('[DB] failed to migrate task', t.id, err)
+        }
+      }
+      // remove local tasks only if we migrated at least one
+      try {
+        if (migrated > 0) localStorage.removeItem('local:tasks')
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[DB] syncLocalToSupabase tasks failed', err)
+  }
+
+  // Sync desabafos
+  try {
+    const localDesabafos = readLocalDesabafos()
+    if (Array.isArray(localDesabafos) && localDesabafos.length > 0) {
+      console.log(
+        `[DB] Found ${localDesabafos.length} local desabafos to migrate`,
+      )
+      let migrated = 0
+      for (const d of localDesabafos) {
+        try {
+          const payload: any = { ...d }
+          if (!payload.user_id && userId) payload.user_id = userId
+          try {
+            const { data: existing } = await withTimeout(
+              supabase
+                .from('desabafos')
+                .select('id')
+                .eq('id', payload.id)
+                .limit(1)
+                .single(),
+            )
+            if (existing && (existing as any).id) {
+              console.log(
+                '[DB] desabafo exists, skipping',
+                (existing as any).id,
+              )
+              continue
+            }
+          } catch (e) {
+            // ignore check errors and attempt create
+          }
+          await createDesabafo(payload)
+          migrated++
+        } catch (err) {
+          console.warn('[DB] failed to migrate desabafo', d.id, err)
+        }
+      }
+      try {
+        if (migrated > 0) localStorage.removeItem('local:desabafos')
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[DB] syncLocalToSupabase desabafos failed', err)
+  }
+
+  // Sync events (local-only data) into a Supabase "events" table if present
+  try {
+    function readLocalEvents(): any[] {
+      try {
+        const raw = localStorage.getItem('local:events')
+        if (!raw) return []
+        return JSON.parse(raw)
+      } catch (err) {
+        console.warn('readLocalEvents failed', err)
+        return []
+      }
+    }
+
+    const localEvents = readLocalEvents()
+    if (Array.isArray(localEvents) && localEvents.length > 0) {
+      console.log(`[DB] Found ${localEvents.length} local events to migrate`)
+      let migrated = 0
+      for (const ev of localEvents) {
+        try {
+          const payload: any = { ...ev }
+          if (!payload.user_id && userId) payload.user_id = userId
+          // Normalize date strings: ensure ISO
+          if (payload.date && !(payload.date as any).endsWith?.('Z')) {
+            const parsed = new Date(payload.date)
+            if (!isNaN(parsed.getTime())) payload.date = parsed.toISOString()
+          }
+
+          // Try insert into events table; if table missing, inform and skip
+          try {
+            const { data: existing } = await withTimeout(
+              supabase
+                .from('events')
+                .select('id')
+                .eq('id', payload.id)
+                .limit(1)
+                .single(),
+            )
+            if (existing && (existing as any).id) {
+              console.log('[DB] event exists, skipping', (existing as any).id)
+              continue
+            }
+          } catch (e) {
+            // If selecting fails because table doesn't exist, supabase client will return an error
+            const msg = (e as any)?.message || String(e)
+            if (
+              /relation\s+"events"\s+does not exist/i.test(msg) ||
+              /table\s+\"events\"\s+does not exist/i.test(msg) ||
+              /Cannot read properties of undefined/i.test(msg)
+            ) {
+              console.warn(
+                '[DB] Supabase events table does not exist. To migrate local events to Supabase, run the script: scripts/create_events_table.js and then re-run sync.',
+              )
+              break
+            }
+          }
+
+          const { data, error } = await withTimeout(
+            supabase.from('events').insert(payload).select().single(),
+          )
+          if (error) {
+            // If insert failed due to missing table, warn and stop
+            const emsg = (error as any).message || JSON.stringify(error)
+            if (
+              /relation\s+"events"\s+does not exist/i.test(emsg) ||
+              /table\s+\"events\"\s+does not exist/i.test(emsg)
+            ) {
+              console.warn(
+                '[DB] Supabase events table missing; run scripts/create_events_table.js then re-run syncLocalToSupabase',
+              )
+              break
+            }
+            throw error
+          }
+          migrated++
+        } catch (err) {
+          console.warn('[DB] failed to migrate event', ev.id, err)
+        }
+      }
+      try {
+        if (migrated > 0) localStorage.removeItem('local:events')
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('[DB] syncLocalToSupabase events failed', err)
+  }
+
+  console.log('[DB] syncLocalToSupabase complete')
 }
