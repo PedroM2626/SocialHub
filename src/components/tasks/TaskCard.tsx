@@ -53,10 +53,23 @@ interface SubtaskListProps {
   onMove: (fromPath: number[], toPath: number[], position: DropPosition) => void
 }
 
-const SubtaskList = ({ items, taskId, onToggleCompletion, path, onMove }: SubtaskListProps) => {
-  const handleDragStart = (e: React.DragEvent, currentPath: number[], id: string) => {
+const SubtaskList = ({
+  items,
+  taskId,
+  onToggleCompletion,
+  path,
+  onMove,
+}: SubtaskListProps) => {
+  const handleDragStart = (
+    e: React.DragEvent,
+    currentPath: number[],
+    id: string,
+  ) => {
     e.stopPropagation()
-    e.dataTransfer.setData('application/x-subtask-path', JSON.stringify({ path: currentPath, id }))
+    e.dataTransfer.setData(
+      'application/x-subtask-path',
+      JSON.stringify({ path: currentPath, id }),
+    )
     e.dataTransfer.effectAllowed = 'move'
   }
   const handleDragOver = (e: React.DragEvent) => {
@@ -70,12 +83,15 @@ const SubtaskList = ({ items, taskId, onToggleCompletion, path, onMove }: Subtas
     if (!data) return
     const { path: fromPath } = JSON.parse(data)
     // Prevent dropping into itself or its descendants
-    const isAncestor = fromPath.length <= targetPath.length && fromPath.every((n: number, i: number) => n === targetPath[i])
+    const isAncestor =
+      fromPath.length <= targetPath.length &&
+      fromPath.every((n: number, i: number) => n === targetPath[i])
     if (isAncestor) return
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const offsetY = e.clientY - rect.top
     const ratio = offsetY / rect.height
-    const position: DropPosition = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'into'
+    const position: DropPosition =
+      ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'into'
     onMove(fromPath, targetPath, position)
   }
   const handleDropOnListEnd = (e: React.DragEvent) => {
@@ -175,8 +191,15 @@ export const TaskCard = ({
     total > 0 ? (completed / total) * 100 : task.is_completed ? 100 : 0
 
   // Utilities to move subtasks between hierarchical levels
-  const deepClone = (arr: Subtask[]): Subtask[] => arr.map((s) => ({ ...s, subtasks: s.subtasks ? deepClone(s.subtasks) : [] }))
-  const removeAtPath = (root: Subtask[], path: number[]): { removed: Subtask; root: Subtask[] } => {
+  const deepClone = (arr: Subtask[]): Subtask[] =>
+    arr.map((s) => ({
+      ...s,
+      subtasks: s.subtasks ? deepClone(s.subtasks) : [],
+    }))
+  const removeAtPath = (
+    root: Subtask[],
+    path: number[],
+  ): { removed: Subtask; root: Subtask[] } => {
     const next = deepClone(root)
     const walk = (list: Subtask[], p: number[]): { removed: Subtask } => {
       const [head, ...rest] = p
@@ -193,7 +216,12 @@ export const TaskCard = ({
     const { removed } = walk(next, path)
     return { removed, root: next }
   }
-  const insertBeforeAfter = (root: Subtask[], targetPath: number[], item: Subtask, after = false): Subtask[] => {
+  const insertBeforeAfter = (
+    root: Subtask[],
+    targetPath: number[],
+    item: Subtask,
+    after = false,
+  ): Subtask[] => {
     const next = deepClone(root)
     const parentPath = targetPath.slice(0, -1)
     const index = targetPath[targetPath.length - 1]
@@ -211,7 +239,11 @@ export const TaskCard = ({
     walk(next, parentPath)
     return next
   }
-  const insertInto = (root: Subtask[], targetPath: number[], item: Subtask): Subtask[] => {
+  const insertInto = (
+    root: Subtask[],
+    targetPath: number[],
+    item: Subtask,
+  ): Subtask[] => {
     const next = deepClone(root)
     const walk = (list: Subtask[], p: number[]) => {
       const [head, ...rest] = p
@@ -227,7 +259,11 @@ export const TaskCard = ({
     walk(next, targetPath)
     return next
   }
-  const findPathById = (list: Subtask[], id: string, base: number[] = []): number[] | null => {
+  const findPathById = (
+    list: Subtask[],
+    id: string,
+    base: number[] = [],
+  ): number[] | null => {
     for (let i = 0; i < list.length; i++) {
       const s = list[i]
       const path = [...base, i]
@@ -239,7 +275,12 @@ export const TaskCard = ({
     }
     return null
   }
-  const moveSubtask = (root: Subtask[], fromPath: number[], toPath: number[], position: 'before' | 'after' | 'into'): Subtask[] => {
+  const moveSubtask = (
+    root: Subtask[],
+    fromPath: number[],
+    toPath: number[],
+    position: 'before' | 'after' | 'into',
+  ): Subtask[] => {
     const { removed, root: without } = removeAtPath(root, fromPath)
     // Re-locate target path by id in the new tree (safer for same-parent moves)
     const targetId = (() => {
@@ -253,13 +294,17 @@ export const TaskCard = ({
       node = getByPath(root, toPath)
       return node?.id || ''
     })()
-    let targetPathInNew = targetId ? findPathById(without, targetId) || toPath : toPath
+    let targetPathInNew = targetId
+      ? findPathById(without, targetId) || toPath
+      : toPath
     if (!targetPathInNew || targetPathInNew.length === 0) {
       // Fallback: append to root
       return [...without, removed]
     }
-    if (position === 'into') return insertInto(without, targetPathInNew, removed)
-    if (position === 'before') return insertBeforeAfter(without, targetPathInNew, removed, false)
+    if (position === 'into')
+      return insertInto(without, targetPathInNew, removed)
+    if (position === 'before')
+      return insertBeforeAfter(without, targetPathInNew, removed, false)
     return insertBeforeAfter(without, targetPathInNew, removed, true)
   }
 
@@ -308,7 +353,11 @@ export const TaskCard = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => { setIsEditModalOpen(true); }}>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsEditModalOpen(true)
+                    }}
+                  >
                     <Edit className="mr-2 h-4 w-4" />
                     Editar
                   </DropdownMenuItem>
@@ -326,7 +375,10 @@ export const TaskCard = ({
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <CardContent
+            className="flex-1 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div
               className={cn(
                 'text-sm text-muted-foreground flex-1 prose prose-sm dark:prose-invert max-w-full overflow-hidden',
@@ -350,7 +402,9 @@ export const TaskCard = ({
                   </div>
                 )}
                 {task.subtasks.length > 0 && (
-                  <div className="text-sm text-muted-foreground">{total} subtarefas</div>
+                  <div className="text-sm text-muted-foreground">
+                    {total} subtarefas
+                  </div>
                 )}
               </div>
 
@@ -368,7 +422,9 @@ export const TaskCard = ({
                     </Badge>
                   ))}
                 </div>
-                <div className="text-xs text-muted-foreground">{Math.round(progress)}%</div>
+                <div className="text-xs text-muted-foreground">
+                  {Math.round(progress)}%
+                </div>
               </div>
             </div>
 
@@ -399,8 +455,17 @@ export const TaskCard = ({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <h3 className={cn('text-lg font-medium', titleAlignClass)} dangerouslySetInnerHTML={{ __html: task.title }} />
-              <div className={cn('text-sm text-muted-foreground mt-1', descriptionAlignClass)} dangerouslySetInnerHTML={{ __html: task.description }} />
+              <h3
+                className={cn('text-lg font-medium', titleAlignClass)}
+                dangerouslySetInnerHTML={{ __html: task.title }}
+              />
+              <div
+                className={cn(
+                  'text-sm text-muted-foreground mt-1',
+                  descriptionAlignClass,
+                )}
+                dangerouslySetInnerHTML={{ __html: task.description }}
+              />
             </div>
 
             {task.subtasks.length > 0 && (
@@ -440,7 +505,9 @@ export const TaskCard = ({
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-xs text-muted-foreground">({(attachment.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({(attachment.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
                         <Download className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </a>
@@ -451,12 +518,28 @@ export const TaskCard = ({
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge className={cn('text-white', priorityVariant[task.priority])}>{task.priority}</Badge>
-                <div className="text-sm text-muted-foreground">{total} subtarefas • {task.attachments.length} anexos</div>
+                <Badge
+                  className={cn('text-white', priorityVariant[task.priority])}
+                >
+                  {task.priority}
+                </Badge>
+                <div className="text-sm text-muted-foreground">
+                  {total} subtarefas • {task.attachments.length} anexos
+                </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { setIsEditModalOpen(true); setIsViewOpen(false); }}>Editar</Button>
-                <Button variant="destructive" onClick={() => onDelete(task.id)}>Excluir</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditModalOpen(true)
+                    setIsViewOpen(false)
+                  }}
+                >
+                  Editar
+                </Button>
+                <Button variant="destructive" onClick={() => onDelete(task.id)}>
+                  Excluir
+                </Button>
               </div>
             </div>
           </div>

@@ -158,14 +158,17 @@ const Tarefas = () => {
   // helper merge functions for import
   const mergeTasks = (existing: any[], incoming: any[]) => {
     const map: Record<string, any> = {}
-    const keyFor = (t: any) => t.id || `${(t.title || '').toLowerCase()}::${t.due_date || ''}`
+    const keyFor = (t: any) =>
+      t.id || `${(t.title || '').toLowerCase()}::${t.due_date || ''}`
     for (const t of existing || []) map[keyFor(t)] = t
     for (const t of incoming || []) map[keyFor(t)] = t
     return Object.values(map)
   }
   const mergeEvents = (existing: any[], incoming: any[]) => {
     const map: Record<string, any> = {}
-    const keyFor = (ev: any) => ev.id || `${(ev.title || '').toLowerCase()}::${normalizeEventDate(ev.date) || ev.date}`
+    const keyFor = (ev: any) =>
+      ev.id ||
+      `${(ev.title || '').toLowerCase()}::${normalizeEventDate(ev.date) || ev.date}`
     for (const ev of existing || []) map[keyFor(ev)] = ev
     for (const ev of incoming || []) {
       const normalized = { ...ev, date: normalizeEventDate(ev.date) || ev.date }
@@ -698,37 +701,56 @@ const Tarefas = () => {
       if (importPreview.dateColors) {
         setDateColors(importPreview.dateColors)
         try {
-          localStorage.setItem('local:dateColors', JSON.stringify(importPreview.dateColors || {}))
+          localStorage.setItem(
+            'local:dateColors',
+            JSON.stringify(importPreview.dateColors || {}),
+          )
         } catch {}
       }
       if (importPreview.highlightColor) {
         setHighlightColor(importPreview.highlightColor)
         try {
-          localStorage.setItem('local:highlightColor', importPreview.highlightColor || '')
+          localStorage.setItem(
+            'local:highlightColor',
+            importPreview.highlightColor || '',
+          )
         } catch {}
       }
       if (typeof importPreview.notificationRangeValue === 'number') {
         setNotificationRangeValue(importPreview.notificationRangeValue)
         try {
-          localStorage.setItem('local:notificationRangeValue', String(importPreview.notificationRangeValue))
+          localStorage.setItem(
+            'local:notificationRangeValue',
+            String(importPreview.notificationRangeValue),
+          )
         } catch {}
       } else if (importPreview.notificationRangeDays) {
         setNotificationRangeValue(importPreview.notificationRangeDays)
         try {
-          localStorage.setItem('local:notificationRangeValue', String(importPreview.notificationRangeDays))
+          localStorage.setItem(
+            'local:notificationRangeValue',
+            String(importPreview.notificationRangeDays),
+          )
         } catch {}
       }
       if (importPreview.notificationRangeUnit) {
         setNotificationRangeUnit(importPreview.notificationRangeUnit)
         try {
-          localStorage.setItem('local:notificationRangeUnit', importPreview.notificationRangeUnit)
+          localStorage.setItem(
+            'local:notificationRangeUnit',
+            importPreview.notificationRangeUnit,
+          )
         } catch {}
       }
 
       toast({ title: 'Sucesso!', description: 'Dados importados.' })
     } catch (err) {
       console.error('applyImport failed', err)
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao aplicar importação.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Falha ao aplicar importação.',
+      })
     } finally {
       setIsImportDialogOpen(false)
       setImportPreview(null)
@@ -985,12 +1007,25 @@ const Tarefas = () => {
             size="sm"
             onClick={() => {
               try {
-                const payload = { tasks, events, dateColors, highlightColor, notificationRangeValue, notificationRangeUnit }
-                const code = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+                const payload = {
+                  tasks,
+                  events,
+                  dateColors,
+                  highlightColor,
+                  notificationRangeValue,
+                  notificationRangeUnit,
+                }
+                const code = btoa(
+                  unescape(encodeURIComponent(JSON.stringify(payload))),
+                )
                 setCodeExportString(code)
                 setIsCodeExportOpen(true)
               } catch (err) {
-                toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao gerar o código.' })
+                toast({
+                  variant: 'destructive',
+                  title: 'Erro',
+                  description: 'Falha ao gerar o código.',
+                })
               }
             }}
             className="w-full sm:w-auto"
@@ -1086,43 +1121,72 @@ const Tarefas = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-medium">Tarefas</div>
-                    <div className="text-xs text-muted-foreground">{(importPreview.tasks || []).length} tarefas encontradas</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(importPreview.tasks || []).length} tarefas encontradas
+                    </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setImportReplaceTasks(true)}
-                      variant={importReplaceTasks ? undefined : 'outline'}>
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceTasks(true)}
+                      variant={importReplaceTasks ? undefined : 'outline'}
+                    >
                       Substituir
                     </Button>
-                    <Button size="sm" onClick={() => setImportReplaceTasks(false)}
-                      variant={!importReplaceTasks ? undefined : 'outline'}>
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceTasks(false)}
+                      variant={!importReplaceTasks ? undefined : 'outline'}
+                    >
                       Acrescentar
                     </Button>
                   </div>
                 </div>
                 <div className="mt-3 max-h-52 overflow-auto rounded bg-accent/30 p-2">
                   <ul className="space-y-1">
-                    {(importPreview.tasks || []).slice(0, 10).map((t: any, i: number) => {
-                      const plainTitle = String(t.title || '').replace(/<[^>]*>?/gm, '')
-                      const due = t.due_date ? new Date(t.due_date) : null
-                      const subCount = (() => {
-                        const countNested = (arr: any[]): number => (arr || []).reduce((acc, s) => acc + 1 + countNested(s.subtasks || []), 0)
-                        return countNested(t.subtasks || [])
-                      })()
-                      return (
-                        <li key={(t.id || i) + '-preview'} className="text-xs flex items-center justify-between gap-2">
-                          <div className="truncate">
-                            <span className="font-medium">{plainTitle || 'Sem título'}</span>
-                            {due && !isNaN(due.getTime()) && (
-                              <span className="text-muted-foreground ml-2">({due.toLocaleDateString()})</span>
-                            )}
-                          </div>
-                          <div className="text-muted-foreground whitespace-nowrap">{subCount} subtarefas</div>
-                        </li>
-                      )
-                    })}
+                    {(importPreview.tasks || [])
+                      .slice(0, 10)
+                      .map((t: any, i: number) => {
+                        const plainTitle = String(t.title || '').replace(
+                          /<[^>]*>?/gm,
+                          '',
+                        )
+                        const due = t.due_date ? new Date(t.due_date) : null
+                        const subCount = (() => {
+                          const countNested = (arr: any[]): number =>
+                            (arr || []).reduce(
+                              (acc, s) =>
+                                acc + 1 + countNested(s.subtasks || []),
+                              0,
+                            )
+                          return countNested(t.subtasks || [])
+                        })()
+                        return (
+                          <li
+                            key={(t.id || i) + '-preview'}
+                            className="text-xs flex items-center justify-between gap-2"
+                          >
+                            <div className="truncate">
+                              <span className="font-medium">
+                                {plainTitle || 'Sem título'}
+                              </span>
+                              {due && !isNaN(due.getTime()) && (
+                                <span className="text-muted-foreground ml-2">
+                                  ({due.toLocaleDateString()})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-muted-foreground whitespace-nowrap">
+                              {subCount} subtarefas
+                            </div>
+                          </li>
+                        )
+                      })}
                   </ul>
                   {(importPreview.tasks || []).length > 10 && (
-                    <div className="text-[10px] text-muted-foreground mt-1">+ {(importPreview.tasks || []).length - 10} mais…</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      + {(importPreview.tasks || []).length - 10} mais…
+                    </div>
                   )}
                 </div>
               </div>
@@ -1133,46 +1197,82 @@ const Tarefas = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-medium">Eventos</div>
-                    <div className="text-xs text-muted-foreground">{(importPreview.events || []).length} eventos encontrados</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(importPreview.events || []).length} eventos encontrados
+                    </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setImportReplaceEvents(true)}
-                      variant={importReplaceEvents ? undefined : 'outline'}>
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceEvents(true)}
+                      variant={importReplaceEvents ? undefined : 'outline'}
+                    >
                       Substituir
                     </Button>
-                    <Button size="sm" onClick={() => setImportReplaceEvents(false)}
-                      variant={!importReplaceEvents ? undefined : 'outline'}>
+                    <Button
+                      size="sm"
+                      onClick={() => setImportReplaceEvents(false)}
+                      variant={!importReplaceEvents ? undefined : 'outline'}
+                    >
                       Acrescentar
                     </Button>
                   </div>
                 </div>
                 <div className="mt-3 max-h-52 overflow-auto rounded bg-accent/30 p-2">
                   <ul className="space-y-1">
-                    {(importPreview.events || []).slice(0, 10).map((e: any, i: number) => {
-                      const when = e.date ? new Date(e.date) : null
-                      return (
-                        <li key={(e.id || i) + '-ev'} className="text-xs flex items-center justify-between gap-2">
-                          <div className="truncate">
-                            <span className="font-medium">{e.title || 'Sem título'}</span>
-                            {when && !isNaN(when.getTime()) && (
-                              <span className="text-muted-foreground ml-2">({when.toLocaleString()})</span>
-                            )}
-                          </div>
-                          <div className="text-muted-foreground whitespace-nowrap">{e.color ? 'cor definida' : 'sem cor'}</div>
-                        </li>
-                      )
-                    })}
+                    {(importPreview.events || [])
+                      .slice(0, 10)
+                      .map((e: any, i: number) => {
+                        const when = e.date ? new Date(e.date) : null
+                        return (
+                          <li
+                            key={(e.id || i) + '-ev'}
+                            className="text-xs flex items-center justify-between gap-2"
+                          >
+                            <div className="truncate">
+                              <span className="font-medium">
+                                {e.title || 'Sem título'}
+                              </span>
+                              {when && !isNaN(when.getTime()) && (
+                                <span className="text-muted-foreground ml-2">
+                                  ({when.toLocaleString()})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-muted-foreground whitespace-nowrap">
+                              {e.color ? 'cor definida' : 'sem cor'}
+                            </div>
+                          </li>
+                        )
+                      })}
                   </ul>
                   {(importPreview.events || []).length > 10 && (
-                    <div className="text-[10px] text-muted-foreground mt-1">+ {(importPreview.events || []).length - 10} mais…</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      + {(importPreview.events || []).length - 10} mais…
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => { setIsImportDialogOpen(false); setImportPreview(null); if (fileImportRef.current) fileImportRef.current.value = '' }}>Cancelar</Button>
-              <Button onClick={() => applyImport(importReplaceTasks, importReplaceEvents)}>Aplicar Importação</Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsImportDialogOpen(false)
+                  setImportPreview(null)
+                  if (fileImportRef.current) fileImportRef.current.value = ''
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() =>
+                  applyImport(importReplaceTasks, importReplaceEvents)
+                }
+              >
+                Aplicar Importação
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -1184,11 +1284,33 @@ const Tarefas = () => {
             <DialogTitle>Código de Exportação</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Copie o código abaixo e guarde em local seguro. Você pode colá-lo em "Importar Código" para restaurar os dados.</p>
-            <textarea readOnly value={codeExportString} className="w-full h-40 p-2 rounded border bg-background text-sm" />
+            <p className="text-sm text-muted-foreground">
+              Copie o código abaixo e guarde em local seguro. Você pode colá-lo
+              em "Importar Código" para restaurar os dados.
+            </p>
+            <textarea
+              readOnly
+              value={codeExportString}
+              className="w-full h-40 p-2 rounded border bg-background text-sm"
+            />
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setIsCodeExportOpen(false)}>Fechar</Button>
-              <Button onClick={() => { navigator.clipboard?.writeText(codeExportString); toast({ title: 'Copiado', description: 'Código copiado para a área de transferência.' }) }}>Copiar</Button>
+              <Button
+                variant="ghost"
+                onClick={() => setIsCodeExportOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard?.writeText(codeExportString)
+                  toast({
+                    title: 'Copiado',
+                    description: 'Código copiado para a área de transferência.',
+                  })
+                }}
+              >
+                Copiar
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -1200,23 +1322,47 @@ const Tarefas = () => {
             <DialogTitle>Importar por Código</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Cole o código gerado anteriormente e clique em "Validar" para carregar os dados.</p>
-            <textarea value={codeImportText} onChange={(e) => setCodeImportText(e.target.value)} placeholder="Cole o código aqui..." className="w-full h-40 p-2 rounded border bg-background text-sm" />
+            <p className="text-sm text-muted-foreground">
+              Cole o código gerado anteriormente e clique em "Validar" para
+              carregar os dados.
+            </p>
+            <textarea
+              value={codeImportText}
+              onChange={(e) => setCodeImportText(e.target.value)}
+              placeholder="Cole o código aqui..."
+              className="w-full h-40 p-2 rounded border bg-background text-sm"
+            />
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setIsCodeImportOpen(false)}>Cancelar</Button>
-              <Button onClick={() => {
-                try {
-                  const decoded = JSON.parse(decodeURIComponent(escape(atob(codeImportText.trim()))))
-                  setImportPreview(decoded)
-                  setImportReplaceTasks(true)
-                  setImportReplaceEvents(true)
-                  setIsCodeImportOpen(false)
-                  setIsImportDialogOpen(true)
-                } catch (err) {
-                  console.error('Failed to parse code import', err)
-                  toast({ variant: 'destructive', title: 'Código inválido', description: 'O código fornecido não pôde ser decodificado.' })
-                }
-              }}>Validar</Button>
+              <Button
+                variant="ghost"
+                onClick={() => setIsCodeImportOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  try {
+                    const decoded = JSON.parse(
+                      decodeURIComponent(escape(atob(codeImportText.trim()))),
+                    )
+                    setImportPreview(decoded)
+                    setImportReplaceTasks(true)
+                    setImportReplaceEvents(true)
+                    setIsCodeImportOpen(false)
+                    setIsImportDialogOpen(true)
+                  } catch (err) {
+                    console.error('Failed to parse code import', err)
+                    toast({
+                      variant: 'destructive',
+                      title: 'Código inválido',
+                      description:
+                        'O código fornecido não pôde ser decodificado.',
+                    })
+                  }
+                }}
+              >
+                Validar
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -1711,10 +1857,10 @@ const Tarefas = () => {
                           : notificationRangeUnit === 'weeks'
                             ? Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7))
                             : Math.ceil(
-                              (item.date.getTime() -
-                                new Date().setHours(0, 0, 0, 0)) /
-                                (1000 * 60 * 60 * 24),
-                            )
+                                (item.date.getTime() -
+                                  new Date().setHours(0, 0, 0, 0)) /
+                                  (1000 * 60 * 60 * 24),
+                              )
                     return remaining <= notificationRangeValue && remaining >= 0
                   })
                   .sort((a, b) => +a.date - +b.date)
@@ -1816,16 +1962,34 @@ const Tarefas = () => {
                   onDelete={handleDeleteTask}
                   onReorderSubtasks={(taskId, next) => {
                     const prev = tasks.find((t) => t.id === taskId)
-                    setTasks((ps) => ps.map((p) => (p.id === taskId ? { ...p, subtasks: next } : p)))
+                    setTasks((ps) =>
+                      ps.map((p) =>
+                        p.id === taskId ? { ...p, subtasks: next } : p,
+                      ),
+                    )
                     ;(async () => {
                       try {
-                        const ok = await updateTask(taskId, { subtasks: next }, userId)
+                        const ok = await updateTask(
+                          taskId,
+                          { subtasks: next },
+                          userId,
+                        )
                         if (!ok) throw new Error('Failed to persist reorder')
-                        toast({ title: 'Sucesso', description: 'Subtarefas reorganizadas.' })
+                        toast({
+                          title: 'Sucesso',
+                          description: 'Subtarefas reorganizadas.',
+                        })
                       } catch (err) {
                         console.error('Failed to persist reorder', err)
-                        if (prev) setTasks((ps) => ps.map((p) => (p.id === taskId ? prev : p)))
-                        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a nova ordem.' })
+                        if (prev)
+                          setTasks((ps) =>
+                            ps.map((p) => (p.id === taskId ? prev : p)),
+                          )
+                        toast({
+                          variant: 'destructive',
+                          title: 'Erro',
+                          description: 'Não foi possível salvar a nova ordem.',
+                        })
                       }
                     })()
                   }}
