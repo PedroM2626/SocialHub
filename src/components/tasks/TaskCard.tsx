@@ -43,76 +43,98 @@ const priorityVariant: Record<Task['priority'], string> = {
   urgent: 'bg-red-500',
 }
 
+type DropPosition = 'before' | 'after' | 'into'
+
 interface SubtaskListProps {
-  subtasks: Subtask[]
+  items: Subtask[]
   taskId: string
   onToggleCompletion: (taskId: string, subtaskId?: string) => void
-  nestingLevel: number
+  path: number[]
+  onMove: (fromPath: number[], toPath: number[], position: DropPosition) => void
 }
 
-const SubtaskList = ({
-  subtasks,
-  taskId,
-  onToggleCompletion,
-  nestingLevel,
-  onReorder,
-}: SubtaskListProps & { onReorder?: (next: Subtask[]) => void }) => {
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.setData('text/subtask-index', String(index))
+const SubtaskList = ({ items, taskId, onToggleCompletion, path, onMove }: SubtaskListProps) => {
+  const handleDragStart = (e: React.DragEvent, currentPath: number[], id: string) => {
+    e.stopPropagation()
+    e.dataTransfer.setData('application/x-subtask-path', JSON.stringify({ path: currentPath, id }))
     e.dataTransfer.effectAllowed = 'move'
   }
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
   }
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+  const handleDropOnItem = (e: React.DragEvent, targetPath: number[]) => {
     e.preventDefault()
-    const src = e.dataTransfer.getData('text/subtask-index')
-    if (!src) return
-    const from = parseInt(src, 10)
-    const to = targetIndex
-    if (isNaN(from) || isNaN(to) || from === to) return
-    const next = [...subtasks]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    onReorder && onReorder(next)
+    e.stopPropagation()
+    const data = e.dataTransfer.getData('application/x-subtask-path')
+    if (!data) return
+    const { path: fromPath } = JSON.parse(data)
+    // Prevent dropping into itself or its descendants
+    const isAncestor = fromPath.length <= targetPath.length && fromPath.every((n: number, i: number) => n === targetPath[i])
+    if (isAncestor) return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const offsetY = e.clientY - rect.top
+    const ratio = offsetY / rect.height
+    const position: DropPosition = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'into'
+    onMove(fromPath, targetPath, position)
+  }
+  const handleDropOnListEnd = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const data = e.dataTransfer.getData('application/x-subtask-path')
+    if (!data) return
+    const { path: fromPath } = JSON.parse(data)
+    // Drop at end of this list (as sibling within this list)
+    const targetPath = [...path, Math.max(0, items.length - 1)]
+    onMove(fromPath, targetPath, 'after')
   }
 
   return (
-    <div
-      className="space-y-2 pl-4 border-l-2 border-border/30"
-      style={{ marginLeft: `${nestingLevel * 10}px` }}
-    >
-      {subtasks.map((subtask, idx) => (
-        <div key={subtask.id} draggable={nestingLevel === 0} onDragStart={(e) => nestingLevel === 0 && handleDragStart(e, idx)} onDragOver={(e) => nestingLevel === 0 && handleDragOver(e)} onDrop={(e) => nestingLevel === 0 && handleDrop(e, idx)}>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id={`subtask-${subtask.id}`}
-              checked={subtask.is_completed}
-              onCheckedChange={() => onToggleCompletion(taskId, subtask.id)}
-            />
-            <label
-              htmlFor={`subtask-${subtask.id}`}
-              className={cn(
-                'text-sm prose prose-sm dark:prose-invert max-w-full',
-                subtask.is_completed && 'line-through text-muted-foreground',
-              )}
-              dangerouslySetInnerHTML={{ __html: subtask.title }}
-            />
-          </div>
-          {subtask.subtasks && subtask.subtasks.length > 0 && (
-            <div className="mt-2">
-              <SubtaskList
-                subtasks={subtask.subtasks}
-                taskId={taskId}
-                onToggleCompletion={onToggleCompletion}
-                nestingLevel={nestingLevel + 1}
-                onReorder={undefined}
+    <div className="space-y-2 pl-4 border-l-2 border-border/30">
+      {items.map((subtask, idx) => {
+        const currentPath = [...path, idx]
+        return (
+          <div
+            key={subtask.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, currentPath, subtask.id)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDropOnItem(e, currentPath)}
+          >
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={`subtask-${subtask.id}`}
+                checked={subtask.is_completed}
+                onCheckedChange={() => onToggleCompletion(taskId, subtask.id)}
+              />
+              <label
+                htmlFor={`subtask-${subtask.id}`}
+                className={cn(
+                  'text-sm prose prose-sm dark:prose-invert max-w-full',
+                  subtask.is_completed && 'line-through text-muted-foreground',
+                )}
+                dangerouslySetInnerHTML={{ __html: subtask.title }}
               />
             </div>
-          )}
-        </div>
-      ))}
+            {subtask.subtasks && subtask.subtasks.length > 0 && (
+              <div className="mt-2">
+                <SubtaskList
+                  items={subtask.subtasks}
+                  taskId={taskId}
+                  onToggleCompletion={onToggleCompletion}
+                  path={currentPath}
+                  onMove={onMove}
+                />
+              </div>
+            )}
+          </div>
+        )
+      })}
+      <div
+        className="h-4"
+        onDragOver={handleDragOver}
+        onDrop={handleDropOnListEnd}
+      />
     </div>
   )
 }
@@ -151,6 +173,95 @@ export const TaskCard = ({
   const { total, completed } = calculateProgress(task.subtasks)
   const progress =
     total > 0 ? (completed / total) * 100 : task.is_completed ? 100 : 0
+
+  // Utilities to move subtasks between hierarchical levels
+  const deepClone = (arr: Subtask[]): Subtask[] => arr.map((s) => ({ ...s, subtasks: s.subtasks ? deepClone(s.subtasks) : [] }))
+  const removeAtPath = (root: Subtask[], path: number[]): { removed: Subtask; root: Subtask[] } => {
+    const next = deepClone(root)
+    const walk = (list: Subtask[], p: number[]): { removed: Subtask } => {
+      const [head, ...rest] = p
+      if (rest.length === 0) {
+        const [removed] = list.splice(head, 1)
+        return { removed }
+      }
+      const node = list[head]
+      if (!node.subtasks) node.subtasks = []
+      const res = walk(node.subtasks, rest)
+      node.subtasks = node.subtasks
+      return res
+    }
+    const { removed } = walk(next, path)
+    return { removed, root: next }
+  }
+  const insertBeforeAfter = (root: Subtask[], targetPath: number[], item: Subtask, after = false): Subtask[] => {
+    const next = deepClone(root)
+    const parentPath = targetPath.slice(0, -1)
+    const index = targetPath[targetPath.length - 1]
+    const walk = (list: Subtask[], p: number[]) => {
+      if (p.length === 0) {
+        const pos = after ? index + 1 : index
+        list.splice(pos, 0, item)
+        return
+      }
+      const [head, ...rest] = p
+      const node = list[head]
+      if (!node.subtasks) node.subtasks = []
+      walk(node.subtasks, rest)
+    }
+    walk(next, parentPath)
+    return next
+  }
+  const insertInto = (root: Subtask[], targetPath: number[], item: Subtask): Subtask[] => {
+    const next = deepClone(root)
+    const walk = (list: Subtask[], p: number[]) => {
+      const [head, ...rest] = p
+      if (rest.length === 0) {
+        const node = list[head]
+        node.subtasks = node.subtasks ? [...node.subtasks, item] : [item]
+        return
+      }
+      const node = list[head]
+      if (!node.subtasks) node.subtasks = []
+      walk(node.subtasks, rest)
+    }
+    walk(next, targetPath)
+    return next
+  }
+  const findPathById = (list: Subtask[], id: string, base: number[] = []): number[] | null => {
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i]
+      const path = [...base, i]
+      if (s.id === id) return path
+      if (s.subtasks) {
+        const child = findPathById(s.subtasks, id, path)
+        if (child) return child
+      }
+    }
+    return null
+  }
+  const moveSubtask = (root: Subtask[], fromPath: number[], toPath: number[], position: 'before' | 'after' | 'into'): Subtask[] => {
+    const { removed, root: without } = removeAtPath(root, fromPath)
+    // Re-locate target path by id in the new tree (safer for same-parent moves)
+    const targetId = (() => {
+      let node: Subtask | null = null
+      const getByPath = (list: Subtask[], p: number[]): Subtask | null => {
+        const [h, ...r] = p
+        const n = list[h]
+        if (!n) return null
+        return r.length === 0 ? n : getByPath(n.subtasks || [], r)
+      }
+      node = getByPath(root, toPath)
+      return node?.id || ''
+    })()
+    let targetPathInNew = targetId ? findPathById(without, targetId) || toPath : toPath
+    if (!targetPathInNew || targetPathInNew.length === 0) {
+      // Fallback: append to root
+      return [...without, removed]
+    }
+    if (position === 'into') return insertInto(without, targetPathInNew, removed)
+    if (position === 'before') return insertBeforeAfter(without, targetPathInNew, removed, false)
+    return insertBeforeAfter(without, targetPathInNew, removed, true)
+  }
 
   const alignMap: Record<string, string> = {
     left: 'text-left',
@@ -297,12 +408,15 @@ export const TaskCard = ({
                 <h4 className="text-sm font-medium">Subtarefas</h4>
                 <div className="mt-2">
                   <SubtaskList
-                  subtasks={task.subtasks}
-                  taskId={task.id}
-                  onToggleCompletion={onToggleCompletion}
-                  nestingLevel={0}
-                  onReorder={(next) => onReorderSubtasks && onReorderSubtasks(task.id, next)}
-                />
+                    items={task.subtasks}
+                    taskId={task.id}
+                    onToggleCompletion={onToggleCompletion}
+                    path={[]}
+                    onMove={(from, to, pos) => {
+                      const next = moveSubtask(task.subtasks, from, to, pos)
+                      onReorderSubtasks && onReorderSubtasks(task.id, next)
+                    }}
+                  />
                 </div>
               </div>
             )}
